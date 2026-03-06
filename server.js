@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req,res,next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_,res) => res.json({status:'ok',version:'8.0'}));
-app.get('/health', (_,res) => res.json({status:'ok',version:'8.0'}));
+app.get('/', (_,res) => res.json({status:'ok',version:'8.1'}));
+app.get('/health', (_,res) => res.json({status:'ok',version:'8.1'}));
 
 app.post('/api/claude', async (req,res) => {
   try {
@@ -80,21 +80,25 @@ app.post('/api/propertyradar/leads', async (req,res) => {
     if(state) base.push({name:'State', value:[state]});
     const perQ = Math.ceil(count/3);
 
-    // Run 3 queries in parallel — all confirmed working signal types
-    const [q1,q2,q3] = await Promise.all([
-      // Absentee owners (mailing != property address) — motivated landlords
-      callPR(token, [...base, {name:'isSameMailingOrExempt',value:[0]}], perQ)
+    // Run 4 queries in parallel — field names confirmed from live PR API
+    const perQ2 = Math.ceil(count/4);
+    const [q1,q2,q3,q4] = await Promise.all([
+      // Absentee owners — isNotSameMailingOrExempt=1 confirmed in response
+      callPR(token, [...base, {name:'isNotSameMailingOrExempt',value:[1]}], perQ2)
         .catch(e=>{console.warn('[q1 absentee]',e.message);return {results:[]};}),
-      // High equity (40%+) — can discount and still profit
-      callPR(token, [...base, {name:'EquityPercent',value:[[40,null]]}], perQ)
-        .catch(e=>{console.warn('[q2 equity]',e.message);return {results:[]};}),
-      // Vacant site properties
-      callPR(token, [...base, {name:'isSiteVacant',value:[1]}], perQ)
-        .catch(e=>{console.warn('[q3 vacant]',e.message);return {results:[]};})
+      // Tax delinquent — confirmed field name inTaxDelinquency
+      callPR(token, [...base, {name:'inTaxDelinquency',value:[1]}], perQ2)
+        .catch(e=>{console.warn('[q2 tax]',e.message);return {results:[]};}),
+      // Pre-foreclosure — confirmed field isPreforeclosure
+      callPR(token, [...base, {name:'isPreforeclosure',value:[1]}], perQ2)
+        .catch(e=>{console.warn('[q3 preforeclosure]',e.message);return {results:[]};}),
+      // High equity — EquityPercent range
+      callPR(token, [...base, {name:'EquityPercent',value:[[40,null]]}], perQ2)
+        .catch(e=>{console.warn('[q4 equity]',e.message);return {results:[]};})
     ]);
 
     const seen=new Set(), merged=[];
-    for(const {results} of [q1,q2,q3])
+    for(const {results} of [q1,q2,q3,q4])
       for(const r of results){
         const id=r.RadarID||(r.Address+r.City);
         if(!seen.has(id)){seen.add(id);merged.push(r);}
