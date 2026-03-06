@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_, res) => res.json({status:'ok',version:'5.7'}));
-app.get('/health', (_, res) => res.json({status:'ok',version:'5.7'}));
+app.get('/', (_, res) => res.json({status:'ok',version:'5.8'}));
+app.get('/health', (_, res) => res.json({status:'ok',version:'5.8'}));
 
 app.post('/api/claude', async (req, res) => {
   try {
@@ -80,14 +80,31 @@ app.get('/api/propertyradar/test', async (req, res) => {
   } catch(e) { res.status(500).json({status:'error', error:e.message}); }
 });
 
-// Search by address
+// Search by address — parse full address into criteria components
 app.post('/api/propertyradar/search', async (req, res) => {
   const token = req.headers['x-pr-token'];
   if(!token) return res.status(401).json({error:'Missing x-pr-token'});
   try {
-    const street = (req.body.address||'').split(',')[0].trim();
-    console.log(`[search] "${street}"`);
-    const {results} = await callPR(token, [{name:'Address', value:[street]}], 5);
+    const full = (req.body.address||req.body.fullAddress||'').trim();
+    if(!full) return res.status(400).json({error:'Missing address'});
+    console.log(`[search] "${full}"`);
+
+    // Parse "123 Main St, Atlanta, GA 30301" into parts
+    const parts = full.split(',').map(p => p.trim());
+    const street = parts[0] || '';
+    const cityRaw = parts[1] || '';
+    const stateZip = (parts[2] || '').trim();
+    const state = stateZip.split(' ')[0] || '';
+    const zip = stateZip.split(' ')[1] || '';
+
+    // Build criteria — always use street, add city/state/zip if available
+    const criteria = [{name:'Address', value:[street]}];
+    if(cityRaw) criteria.push({name:'City', value:[cityRaw]});
+    if(state) criteria.push({name:'State', value:[state]});
+    if(zip && zip.length === 5) criteria.push({name:'ZipFive', value:[zip]});
+
+    console.log('[search] criteria:', JSON.stringify(criteria));
+    const {results} = await callPR(token, criteria, 5);
     res.json({results, count:results.length});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
