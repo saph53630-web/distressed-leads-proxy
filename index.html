@@ -3,1062 +3,2084 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DistressedLeads.AI — Find Motivated Sellers</title>
+<title>DistressedLeads.AI — Motivated Seller Intelligence Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root {
-    --red: #E63946;
-    --amber: #F4A261;
-    --green: #2A9D8F;
-    --dark: #0a0a0b;
-    --panel: #111114;
-    --border: #222228;
-    --muted: #555562;
-    --text: #e8e8f0;
-    --sub: #9090a8;
-  }
+:root{--red:#E63946;--amber:#F4A261;--green:#2A9D8F;--blue:#457B9D;--dark:#0a0a0b;--panel:#111114;--panel2:#16161a;--border:#222228;--muted:#555562;--text:#e8e8f0;--sub:#9090a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(230,57,70,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(230,57,70,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px 80px}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+header{padding:28px 0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);margin-bottom:36px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--red)}
+.logo span{color:var(--text)}
+.header-right{display:flex;align-items:center;gap:12px}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);border:1px solid var(--amber);padding:3px 10px;letter-spacing:2px;animation:pulse-border 2s ease infinite}
+.nav-tabs{display:flex;gap:0;border:1px solid var(--border)}
+.nav-tab{padding:8px 16px;background:none;border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;transition:all 0.2s;border-right:1px solid var(--border)}
+.nav-tab:last-child{border-right:none}
+.nav-tab.active{background:var(--red);color:white}
+@keyframes pulse-border{0%,100%{opacity:1}50%{opacity:0.5}}
 
-  body {
-    background: var(--dark);
-    color: var(--text);
-    font-family: 'IBM Plex Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* PAGES */
+.page{display:none}.page.active{display:block}
 
-  /* Animated grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(230,57,70,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(230,57,70,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:36px}
+.stat-item{background:var(--panel);padding:16px;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--red);line-height:1;display:block}
+.stat-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
 
-  .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+/* PANELS */
+.search-panel{background:var(--panel);border:1px solid var(--border);padding:28px;margin-bottom:28px;position:relative;overflow:hidden}
+.search-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--amber))}
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;margin-top:20px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.form-grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.field input,.field select,.field textarea{background:var(--dark);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red)}
+.field select option{background:#1a1a1e}
+.city-wrap{position:relative}
+.city-dropdown{position:absolute;top:100%;left:0;right:0;background:#1a1a1e;border:1px solid var(--red);border-top:none;z-index:50;max-height:220px;overflow-y:auto;display:none}
+.city-dropdown.open{display:block}
+.city-opt{padding:9px 12px;font-size:13px;cursor:pointer;color:var(--sub);transition:all 0.15s;border-bottom:1px solid var(--border)}
+.city-opt:last-child{border-bottom:none}
+.city-opt:hover,.city-opt.active{background:rgba(230,57,70,0.12);color:var(--text)}
+.city-opt strong{color:var(--red)}
+.checkbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:8px;margin-bottom:20px}
+.checkbox-item{display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border:1px solid var(--border);transition:all 0.2s;font-size:12px}
+.checkbox-item:hover{border-color:var(--red);background:rgba(230,57,70,0.05)}
+.checkbox-item input[type=checkbox]{accent-color:var(--red);width:13px;height:13px;flex-shrink:0}
+.checkbox-item span{color:var(--sub);transition:color 0.2s}
+.checkbox-item:has(input:checked){border-color:var(--red);background:rgba(230,57,70,0.08)}
+.checkbox-item:has(input:checked) span{color:var(--text)}
 
-  /* HEADER */
-  header {
-    padding: 32px 0 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 40px;
-  }
+/* BUTTONS */
+.btn-generate{width:100%;padding:15px;background:var(--red);border:none;color:white;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;cursor:pointer;transition:all 0.2s;margin-top:4px}
+.btn-generate:hover{background:#c8303c;transform:translateY(-1px)}
+.btn-generate:disabled{background:#4a1a1e;color:var(--muted);cursor:not-allowed;transform:none}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-bar{width:100%;height:3px;background:var(--border);margin-top:10px;display:none}
+.progress-bar.show{display:block}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--amber));width:0%;transition:width 0.4s ease}
+.progress-text{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sub);text-align:center;margin-top:6px;display:none}
+.progress-text.show{display:block}
 
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 3px;
-    color: var(--red);
-  }
-  .logo span { color: var(--text); }
+/* RESULTS */
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.results-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px}
+.results-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);border:1px solid var(--amber);padding:3px 10px}
+.export-btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn-export{padding:7px 14px;border:1px solid;background:transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;transition:all 0.15s}
+.btn-excel{border-color:var(--green);color:var(--green)}.btn-excel:hover{background:var(--green);color:var(--dark)}
+.btn-csv{border-color:var(--sub);color:var(--sub)}.btn-csv:hover{background:var(--sub);color:var(--dark)}
+.btn-pdf{border-color:var(--amber);color:var(--amber)}.btn-pdf:hover{background:var(--amber);color:var(--dark)}
+.toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.toolbar input{background:var(--dark);border:1px solid var(--border);color:var(--text);padding:7px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;flex:1;min-width:180px;max-width:280px}
+.toolbar input:focus{border-color:var(--amber)}
+.view-toggle{display:flex}
+.view-btn{padding:7px 14px;background:none;border:1px solid var(--border);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;transition:all 0.2s}
+.view-btn.active{background:var(--red);border-color:var(--red);color:white}
 
-  .badge {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--amber);
-    border: 1px solid var(--amber);
-    padding: 3px 10px;
-    letter-spacing: 2px;
-    animation: pulse-border 2s ease infinite;
-  }
+/* CARDS */
+.leads-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.lead-card{background:var(--panel);border:1px solid var(--border);padding:18px;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.2s;animation:fadeIn 0.35s ease both}
+.lead-card:hover{border-color:var(--red);transform:translateY(-2px)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.score-bar-top{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--red),var(--amber))}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.lead-addr{font-weight:600;font-size:13px;line-height:1.4;flex:1;margin-right:10px}
+.lead-addr small{display:block;font-weight:400;color:var(--sub);font-size:11px;margin-top:1px}
+.dscore{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1}
+.dscore small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted);text-align:center}
+.sh{color:var(--red)}.sm{color:var(--amber)}.sl{color:var(--green)}
+.signals{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.sig{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 6px;text-transform:uppercase}
+.sig.hot{background:rgba(230,57,70,0.15);color:var(--red);border:1px solid rgba(230,57,70,0.3)}
+.sig.warm{background:rgba(244,162,97,0.12);color:var(--amber);border:1px solid rgba(244,162,97,0.3)}
+.sig.cool{background:rgba(42,157,143,0.12);color:var(--green);border:1px solid rgba(42,157,143,0.3)}
+.lead-deets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.dl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.dv{font-size:12px;font-weight:500;margin-top:1px}
+.ci-box{background:rgba(42,157,143,0.06);border:1px solid rgba(42,157,143,0.2);padding:8px 10px;margin-bottom:10px}
+.ci-title{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--green);text-transform:uppercase;margin-bottom:5px}
+.ci-row{font-size:11px;color:var(--sub);margin-bottom:2px}
+.ci-row span{color:var(--text)}
+.ci-row a{color:var(--amber);text-decoration:none}
+.lead-sum{font-size:11px;color:var(--sub);line-height:1.5;margin-bottom:10px;font-style:italic}
+.card-btns{display:flex;gap:6px}
+.btn-sm{flex:1;padding:7px;border:1px solid;background:transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;transition:all 0.15s}
+.btn-outreach{border-color:var(--red);color:var(--red)}.btn-outreach:hover{background:var(--red);color:white}
+.btn-skip{border-color:var(--blue);color:var(--blue)}.btn-skip:hover{background:var(--blue);color:white}
+.btn-save{border-color:var(--border);color:var(--muted)}.btn-save:hover{border-color:var(--sub);color:var(--text)}
+.btn-save.saved{border-color:var(--green);color:var(--green)}
 
-  @keyframes pulse-border {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
+/* TABLE */
+.table-wrap{overflow-x:auto;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;background:var(--panel);white-space:nowrap;cursor:pointer}
+th:hover{color:var(--text)}
+td{padding:8px 10px;border-bottom:1px solid rgba(34,34,40,0.5);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.contact-cell{font-size:10px;line-height:1.7}
+.contact-cell a{color:var(--amber);text-decoration:none}
 
-  /* HERO */
-  .hero {
-    margin-bottom: 40px;
-  }
-  .hero h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(48px, 8vw, 88px);
-    line-height: 0.95;
-    letter-spacing: 2px;
-    margin-bottom: 16px;
-  }
-  .hero h1 em {
-    color: var(--red);
-    font-style: normal;
-    display: block;
-  }
-  .hero p {
-    color: var(--sub);
-    font-size: 15px;
-    max-width: 520px;
-    line-height: 1.7;
-  }
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);max-width:640px;width:100%;max-height:92vh;overflow-y:auto;position:relative}
+.modal-top{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--border);padding:18px 22px;display:flex;justify-content:space-between;align-items:center;z-index:1}
+.modal-top h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--amber)}
+.btn-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px}
+.modal-body{padding:22px}
+.tab-row{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px}
+.tab-btn{padding:9px 14px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:-1px;transition:all 0.2s}
+.tab-btn.active{color:var(--amber);border-bottom-color:var(--amber)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.msg-area{background:var(--dark);border:1px solid var(--border);color:var(--text);width:100%;min-height:180px;padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;line-height:1.7;resize:vertical;outline:none}
+.msg-area:focus{border-color:var(--amber)}
+.btn-copy{width:100%;margin-top:10px;padding:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;cursor:pointer;transition:all 0.2s}
+.btn-copy:hover{background:var(--amber);color:var(--dark)}
+.modal-loading{text-align:center;padding:36px;color:var(--sub);font-size:13px;display:none}
+.modal-loading.show{display:block}
+.big-spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px}
 
-  /* FORM */
-  .search-panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 32px;
-    margin-bottom: 36px;
-    position: relative;
-    overflow: hidden;
-  }
-  .search-panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--red), var(--amber));
-  }
+/* SKIP TRACE MODAL */
+.skip-result{background:var(--dark);border:1px solid var(--border);padding:16px;margin-top:14px}
+.skip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.skip-item .sk-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.skip-item .sk-val{font-size:12px;color:var(--text);margin-top:2px}
+.skip-item .sk-val a{color:var(--amber);text-decoration:none}
 
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
+/* KEYWORD PAGE */
+.kw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:24px}
+.kw-card{background:var(--panel);border:1px solid var(--border);padding:16px}
+.kw-card h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin-bottom:10px}
+.kw-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 8px;border:1px solid var(--border);color:var(--sub);margin:3px 2px;cursor:pointer;transition:all 0.15s}
+.kw-tag:hover{border-color:var(--amber);color:var(--amber)}
+.kw-tag.copied{border-color:var(--green);color:var(--green)}
 
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
+/* MARKETING PAGE */
+.mkt-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.mkt-card{background:var(--panel);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.mkt-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--red)}
+.mkt-card h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:8px;color:var(--amber)}
+.mkt-card p{font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:10px}
+.mkt-card ul{list-style:none;padding:0}
+.mkt-card ul li{font-size:12px;color:var(--sub);padding:3px 0;padding-left:14px;position:relative}
+.mkt-card ul li::before{content:'→';position:absolute;left:0;color:var(--red);font-size:10px}
+.mkt-gen-btn{width:100%;padding:10px;background:transparent;border:1px solid var(--red);color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;margin-top:12px;transition:all 0.2s;text-transform:uppercase}
+.mkt-gen-btn:hover{background:var(--red);color:white}
 
-  .field input, .field select, .field textarea {
-    background: var(--dark);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 14px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus {
-    border-color: var(--red);
-  }
-  .field select option { background: #1a1a1e; }
+/* DEAL ANALYZER */
+.analyzer-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.result-box{background:var(--dark);border:1px solid var(--border);padding:16px;margin-top:14px}
+.result-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(34,34,40,0.5);font-size:13px}
+.result-row:last-child{border-bottom:none;font-weight:600;font-size:14px;color:var(--amber)}
+.result-row .r-label{color:var(--sub)}
+.result-row .r-val{font-family:'IBM Plex Mono',monospace}
+.profit-badge{display:inline-block;padding:8px 16px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-top:10px}
+.profit-good{background:rgba(42,157,143,0.15);color:var(--green);border:1px solid rgba(42,157,143,0.3)}
+.profit-warn{background:rgba(244,162,97,0.12);color:var(--amber);border:1px solid rgba(244,162,97,0.3)}
+.profit-bad{background:rgba(230,57,70,0.1);color:var(--red);border:1px solid rgba(230,57,70,0.3)}
 
-  .checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
-    margin-bottom: 24px;
-  }
-  .checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    transition: all 0.2s;
-  }
-  .checkbox-item:hover { border-color: var(--red); background: rgba(230,57,70,0.05); }
-  .checkbox-item input[type="checkbox"] { accent-color: var(--red); width: 14px; height: 14px; }
-  .checkbox-item span {
-    font-size: 13px;
-    color: var(--sub);
-    transition: color 0.2s;
-  }
-  .checkbox-item:has(input:checked) { border-color: var(--red); background: rgba(230,57,70,0.08); }
-  .checkbox-item:has(input:checked) span { color: var(--text); }
+/* MISC */
+.error-msg{background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);color:var(--red);padding:10px 14px;font-size:12px;margin-bottom:14px;display:none;font-family:'IBM Plex Mono',monospace}
+.error-msg.show{display:block}
+.empty-state{text-align:center;padding:60px 24px;color:var(--muted);display:none}
+.empty-state.show{display:block}
+.empty-state .big-icon{font-size:44px;display:block;margin-bottom:14px;opacity:0.4}
+.empty-state p{font-size:13px;line-height:1.6;max-width:340px;margin:0 auto}
+.hero{margin-bottom:36px}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,7vw,82px);line-height:0.95;letter-spacing:2px;margin-bottom:12px}
+.hero h1 em{color:var(--red);font-style:normal;display:block}
+.hero p{color:var(--sub);font-size:14px;max-width:520px;line-height:1.7}
+.info-box{background:rgba(69,123,157,0.08);border:1px solid rgba(69,123,157,0.25);padding:12px 16px;font-size:12px;color:var(--sub);margin-bottom:16px;line-height:1.6}
+.info-box strong{color:var(--blue)}
 
-  .section-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
 
-  .btn-generate {
-    width: 100%;
-    padding: 16px;
-    background: var(--red);
-    border: none;
-    color: white;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 4px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.2s;
-  }
-  .btn-generate:hover { background: #c8303c; transform: translateY(-1px); }
-  .btn-generate:active { transform: translateY(0); }
-  .btn-generate:disabled { background: #4a1a1e; color: var(--muted); cursor: not-allowed; transform: none; }
+/* DRAW CIRCLE */
+.draw-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.btn-draw{padding:8px 16px;border:1px solid var(--amber);color:var(--amber);background:transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s}
+.btn-draw:hover,.btn-draw.active{background:var(--amber);color:var(--dark)}
+.btn-draw-red{border-color:var(--red);color:var(--red)}
+.btn-draw-red:hover,.btn-draw-red.active{background:var(--red);color:white}
+.btn-draw-green{border-color:var(--green);color:var(--green)}
+.btn-draw-green:hover{background:var(--green);color:white}
+.circle-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sub);padding:8px 12px;border:1px solid var(--border);background:var(--dark);display:none}
+.circle-info.show{display:block}
 
-  .btn-generate .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* MAP PAGE */
+#map-container{height:560px;border:1px solid var(--border);margin-bottom:20px;position:relative;z-index:1}
+.map-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.legend-item{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub)}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.leaflet-popup-content-wrapper{background:var(--panel)!important;border:1px solid var(--border)!important;border-radius:0!important;color:var(--text)!important;box-shadow:0 4px 20px rgba(0,0,0,0.5)!important}
+.leaflet-popup-tip{background:var(--panel)!important}
+.leaflet-popup-content{margin:12px 16px!important;font-family:'IBM Plex Sans',sans-serif!important}
+.popup-addr{font-weight:600;font-size:13px;margin-bottom:4px}
+.popup-sub{font-size:11px;color:var(--sub);margin-bottom:6px}
+.popup-score{font-family:'Bebas Neue',sans-serif;font-size:22px}
+.popup-ci{font-size:11px;margin-top:6px;color:var(--sub)}
+.popup-ci span{color:var(--amber)}
+.popup-btn{margin-top:8px;padding:6px 12px;background:var(--red);border:none;color:white;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;width:100%}
+/* HOUSE LOOKUP */
+.lookup-result{background:var(--panel);border:1px solid var(--border);padding:24px;margin-top:20px}
+.lookup-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+.lookup-item .lk-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.lookup-item .lk-val{font-size:14px;font-weight:500;margin-top:3px}
+.lookup-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.lookup-section h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--amber);margin-bottom:10px}
 
-  /* RESULTS */
-  .results-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .results-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 2px;
-  }
-  .results-count {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--amber);
-    border: 1px solid var(--amber);
-    padding: 4px 12px;
-  }
+@media(max-width:768px){.form-grid,.form-grid-4,.analyzer-grid,.mkt-grid{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr 1fr 1fr}.leads-grid{grid-template-columns:1fr}.hero h1{font-size:48px}.nav-tab{padding:6px 10px;font-size:9px}}
 
-  .leads-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-  }
-
-  .lead-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s;
-    animation: fadeIn 0.4s ease both;
-  }
-  .lead-card:hover { border-color: var(--red); transform: translateY(-2px); }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .lead-card .score-bar {
-    position: absolute;
-    top: 0; left: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--red), var(--amber));
-  }
-
-  .lead-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .lead-address {
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 1.4;
-    flex: 1;
-    margin-right: 12px;
-  }
-  .lead-address small {
-    display: block;
-    font-weight: 400;
-    color: var(--sub);
-    font-size: 12px;
-  }
-
-  .distress-score {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    line-height: 1;
-  }
-  .distress-score small {
-    display: block;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  .score-high { color: var(--red); }
-  .score-med { color: var(--amber); }
-  .score-low { color: var(--green); }
-
-  .lead-signals {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 14px;
-  }
-  .signal-tag {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    text-transform: uppercase;
-  }
-  .signal-tag.hot { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
-  .signal-tag.warm { background: rgba(244,162,97,0.12); color: var(--amber); border: 1px solid rgba(244,162,97,0.3); }
-  .signal-tag.cool { background: rgba(42,157,143,0.12); color: var(--green); border: 1px solid rgba(42,157,143,0.3); }
-
-  .lead-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border);
-  }
-  .detail-item { }
-  .detail-item .d-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .detail-item .d-value {
-    font-size: 13px;
-    font-weight: 500;
-    margin-top: 2px;
-  }
-
-  .lead-summary {
-    font-size: 12px;
-    color: var(--sub);
-    line-height: 1.6;
-    margin-bottom: 14px;
-    font-style: italic;
-  }
-
-  .lead-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .btn-sm {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid;
-    background: transparent;
-    cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: all 0.15s;
-  }
-  .btn-contact { border-color: var(--red); color: var(--red); }
-  .btn-contact:hover { background: var(--red); color: white; }
-  .btn-save { border-color: var(--border); color: var(--muted); }
-  .btn-save:hover { border-color: var(--sub); color: var(--text); }
-  .btn-save.saved { border-color: var(--green); color: var(--green); }
-
-  /* OUTREACH MODAL */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    max-width: 600px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-  }
-  .modal-top {
-    position: sticky;
-    top: 0;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .modal-top h3 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 2px;
-    color: var(--amber);
-  }
-  .btn-close {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 20px;
-    padding: 4px 8px;
-    transition: color 0.2s;
-  }
-  .btn-close:hover { color: var(--text); }
-
-  .modal-body { padding: 24px; }
-
-  .outreach-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-  }
-  .tab-btn {
-    padding: 10px 16px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: -1px;
-    transition: all 0.2s;
-  }
-  .tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); }
-
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  .outreach-text {
-    background: var(--dark);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 100%;
-    min-height: 200px;
-    padding: 16px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 14px;
-    line-height: 1.7;
-    resize: vertical;
-    outline: none;
-  }
-  .outreach-text:focus { border-color: var(--amber); }
-
-  .modal-generating {
-    text-align: center;
-    padding: 40px;
-    color: var(--sub);
-    font-size: 14px;
-    display: none;
-  }
-  .modal-generating.show { display: block; }
-  .modal-generating .big-spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--amber);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  .btn-copy-msg {
-    width: 100%;
-    margin-top: 12px;
-    padding: 12px;
-    background: transparent;
-    border: 1px solid var(--amber);
-    color: var(--amber);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-copy-msg:hover { background: var(--amber); color: var(--dark); }
-
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center;
-    padding: 80px 24px;
-    color: var(--muted);
-    display: none;
-  }
-  .empty-state.show { display: block; }
-  .empty-state .big-icon {
-    font-size: 48px;
-    display: block;
-    margin-bottom: 16px;
-    opacity: 0.4;
-  }
-  .empty-state p { font-size: 14px; line-height: 1.6; max-width: 360px; margin: 0 auto; }
-
-  /* STATS BAR */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    margin-bottom: 40px;
-  }
-  .stat-item {
-    background: var(--panel);
-    padding: 20px;
-    text-align: center;
-  }
-  .stat-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    color: var(--red);
-    line-height: 1;
-    display: block;
-  }
-  .stat-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
-
-  /* Error */
-  .error-msg {
-    background: rgba(230,57,70,0.1);
-    border: 1px solid rgba(230,57,70,0.3);
-    color: var(--red);
-    padding: 12px 16px;
-    font-size: 13px;
-    margin-bottom: 16px;
-    display: none;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .error-msg.show { display: block; }
-
-  @media (max-width: 640px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .stats-bar { grid-template-columns: 1fr 1fr; }
-    .leads-grid { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 52px; }
-  }
-
-  .proxy-banner {
-    background: rgba(244,162,97,0.08);
-    border: 1px solid rgba(244,162,97,0.25);
-    padding: 12px 16px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .proxy-banner input {
-    flex: 1;
-    background: var(--dark);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .proxy-banner input:focus { border-color: var(--amber); }
-  .proxy-banner input::placeholder { color: var(--muted); }
-  .proxy-banner label { color: var(--amber); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; white-space: nowrap; }
-  .proxy-dot { width:8px; height:8px; border-radius:50%; background: var(--red); flex-shrink:0; box-shadow: 0 0 6px var(--red); transition: all 0.3s; }
-  .proxy-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
-
+/* ── Data display boxes ── */
+.data-box{background:var(--dark);border:1px solid var(--border);padding:10px 12px;border-radius:2px}
+.data-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.data-val{font-size:13px;font-weight:600;color:var(--text)}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <header>
-    <div class="logo">Distressed<span>Leads</span>.AI</div>
+<header>
+  <div class="logo">Distressed<span>Leads</span>.AI</div>
+  <div class="header-right">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('leads')">🏚 LEADS</button>
+      <button class="nav-tab" onclick="showPage('skip')">🔍 SKIP TRACE</button>
+      <button class="nav-tab" onclick="showPage('keywords')">🔑 KEYWORDS</button>
+      <button class="nav-tab" onclick="showPage('marketing')">📢 MARKETING</button>
+      <button class="nav-tab" onclick="showPage('analyzer')">📊 DEAL CALC</button>
+      <button class="nav-tab" onclick="showPage('map')">🗺 MAP</button>
+      <button class="nav-tab" onclick="showPage('lookup')">🏠 HOUSE LOOKUP</button>
+    </div>
     <div class="badge">⚡ AI POWERED</div>
-  </header>
-
-  
-  <div class="proxy-banner">
-    <div class="proxy-dot" id="proxy-dot"></div>
-    <label>PROXY&nbsp;URL</label>
-    <input type="text" id="proxy-url" value="https://distressed-leads-proxy.onrender.com" placeholder="https://your-app.railway.app  ← paste your Railway/Render URL here" oninput="updateProxy()" />
   </div>
+</header>
 
+<!-- STATS -->
+
+<!-- PROPERTYRADAR SETTINGS BANNER -->
+<div id="settings-banner" style="background:rgba(42,157,143,0.08);border:1px solid rgba(42,157,143,0.3);padding:12px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);letter-spacing:2px">🔑 PROPERTYRADAR:</span>
+  <input type="text" id="pr-key" value="1a5681af3d0492b8603b0f413eef1532d37cc891"
+    style="background:var(--dark);border:1px solid var(--green);color:var(--text);padding:7px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;flex:1;min-width:300px"
+    placeholder="PropertyRadar API token" onchange="savePRKey()" />
+  <button onclick="testPRConnection()" style="background:var(--green);color:#fff;border:none;padding:7px 14px;font-family:'IBM Plex Mono',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700">TEST CONNECTION</button>
+  <span id="pr-status" style="font-size:11px;color:var(--green)">✅ TOKEN LOADED — REAL DATA ACTIVE</span>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-item"><span class="stat-num" id="stat-generated">0</span><span class="stat-label">Leads Generated</span></div>
+  <div class="stat-item"><span class="stat-num" id="stat-saved">0</span><span class="stat-label">Saved</span></div>
+  <div class="stat-item"><span class="stat-num" id="stat-hot">0</span><span class="stat-label">Hot (80+)</span></div>
+  <div class="stat-item"><span class="stat-num" id="stat-contacts">0</span><span class="stat-label">With Contacts</span></div>
+  <div class="stat-item"><span class="stat-num" id="stat-skipped">0</span><span class="stat-label">Skip Traced</span></div>
+  <div class="stat-item"><span class="stat-num" id="stat-msgs">0</span><span class="stat-label">Messages Copied</span></div>
+</div>
+
+<!-- ============ PAGE: LEADS ============ -->
+<div class="page active" id="page-leads">
   <div class="hero">
     <h1>Find <em>Motivated</em> Sellers</h1>
-    <p>AI-powered lead intelligence for distressed real estate. Generate targeted seller profiles, distress signals, and ready-to-send outreach in seconds.</p>
-  </div>
-
-  <div class="stats-bar">
-    <div class="stat-item"><span class="stat-num" id="stat-generated">0</span><span class="stat-label">Leads Generated</span></div>
-    <div class="stat-item"><span class="stat-num" id="stat-saved">0</span><span class="stat-label">Saved</span></div>
-    <div class="stat-item"><span class="stat-num" id="stat-hot">0</span><span class="stat-label">Hot (80+)</span></div>
-    <div class="stat-item"><span class="stat-num" id="stat-msgs">0</span><span class="stat-label">Messages Sent</span></div>
+    <p>Generate up to 1,000 distressed seller leads with contact info, skip trace data, and personalized outreach. Export to Excel, CSV, or PDF.</p>
   </div>
 
   <div class="search-panel">
-    <div class="section-label">Search Parameters</div>
+    <div class="section-label">Target Market</div>
     <div class="form-grid">
-      <div class="field">
-        <label>City / Metro Area</label>
-        <input type="text" id="inp-city" placeholder="e.g. Atlanta, GA" />
-      </div>
-      <div class="field">
-        <label>Property Type</label>
+      <div class="field"><label>City / Metro Area</label><div class="city-wrap"><input type="text" id="inp-city" placeholder="e.g. Atlanta, GA" autocomplete="off" oninput="cityAC(this,'inp-city-dd')" onkeydown="cityNav(event,'inp-city-dd')" onblur="setTimeout(()=>closeCityDD('inp-city-dd'),200)" /><div class="city-dropdown" id="inp-city-dd"></div></div></div>
+      <div class="field"><label>Property Type</label>
         <select id="inp-type">
-          <option value="Any">Any Type</option>
-          <option value="Single Family">Single Family</option>
-          <option value="Multi-Family">Multi-Family</option>
-          <option value="Condo/Townhome">Condo / Townhome</option>
-          <option value="Commercial">Commercial</option>
-          <option value="Land/Lot">Land / Lot</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Price Range</label>
+          <option value="Any">Any Type</option><option value="Single Family">Single Family</option>
+          <option value="Multi-Family">Multi-Family</option><option value="Condo/Townhome">Condo/Townhome</option>
+          <option value="Commercial">Commercial</option><option value="Land/Lot">Land/Lot</option>
+        </select></div>
+      <div class="field"><label>Price Range</label>
         <select id="inp-price">
-          <option value="Any">Any Price</option>
-          <option value="Under $100K">Under $100K</option>
-          <option value="$100K–$250K">$100K – $250K</option>
-          <option value="$250K–$500K">$250K – $500K</option>
-          <option value="$500K–$1M">$500K – $1M</option>
-          <option value="$1M+">$1M+</option>
-        </select>
-      </div>
+          <option value="Any">Any Price</option><option value="Under $100K">Under $100K</option>
+          <option value="$100K–$250K">$100K–$250K</option><option value="$250K–$500K">$250K–$500K</option>
+          <option value="$500K–$1M">$500K–$1M</option><option value="$1M+">$1M+</option>
+        </select></div>
     </div>
 
-    <div class="section-label">Distress Signals to Target</div>
+    <div class="section-label">Distress Signals — (What John Buys Houses targets)</div>
     <div class="checkbox-grid" id="signal-checks">
-      <label class="checkbox-item"><input type="checkbox" value="Pre-Foreclosure" checked><span>Pre-Foreclosure</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Tax Delinquent" checked><span>Tax Delinquent</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Probate/Estate" checked><span>Probate / Estate</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Divorce Filing"><span>Divorce Filing</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Code Violations"><span>Code Violations</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Vacant Property"><span>Vacant Property</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Absentee Owner"><span>Absentee Owner</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="High Equity"><span>High Equity</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Long-term Owner"><span>Long-term Owner (10+ yrs)</span></label>
-      <label class="checkbox-item"><input type="checkbox" value="Failed Listing"><span>Failed / Expired Listing</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Pre-Foreclosure" checked><span>🔴 Pre-Foreclosure</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Tax Delinquent" checked><span>🔴 Tax Delinquent</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Probate/Estate" checked><span>🟠 Probate / Estate</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Divorce Filing"><span>🟠 Divorce Filing</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Code Violations"><span>🟠 Code Violations</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Vacant Property"><span>🟡 Vacant Property</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Absentee Owner"><span>🟡 Absentee Owner</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="High Equity"><span>🟢 High Equity</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Long-term Owner (10+yrs)"><span>🟢 Long-term Owner 10+</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Expired/Failed Listing"><span>🟡 Expired Listing</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Bankruptcy Filing"><span>🔴 Bankruptcy Filing</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Pre-Probate"><span>🟠 Pre-Probate</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Tired Landlord"><span>🟡 Tired Landlord</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Behind on Payments"><span>🔴 Behind on Payments</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Inherited Property"><span>🟠 Inherited Property</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="Job Relocation"><span>🟡 Job Relocation</span></label>
     </div>
 
-    <div class="form-grid">
-      <div class="field">
-        <label>Number of Leads</label>
+    <div class="section-label">Contact Info to Pull (Public Record Data)</div>
+    <div class="checkbox-grid" id="contact-checks">
+      <label class="checkbox-item"><input type="checkbox" value="phone" checked><span>📞 Phone Number</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="email" checked><span>✉️ Email Address</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="mailingAddress" checked><span>📬 Mailing Address</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="llcInfo"><span>🏢 LLC / Entity Info</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="liensJudgments"><span>⚖️ Liens & Judgments</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="mortgageInfo"><span>🏦 Mortgage Details</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="purchaseHistory"><span>📋 Purchase History</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="neighborInfo"><span>🏘️ Neighbor Contacts</span></label>
+    </div>
+
+    <div class="form-grid-4">
+      <div class="field"><label>Number of Leads</label>
         <select id="inp-count">
-          <option value="3">3 leads</option>
-          <option value="5" selected>5 leads</option>
-          <option value="8">8 leads</option>
-          <option value="10">10 leads</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Min. Distress Score</label>
+          <option value="10">10 leads</option><option value="25" selected>25 leads</option>
+          <option value="50">50 leads</option><option value="100">100 leads</option>
+          <option value="250">250 leads</option><option value="500">500 leads</option>
+          <option value="1000">1,000 leads</option>
+        </select></div>
+      <div class="field"><label>Min Distress Score</label>
         <select id="inp-minscore">
-          <option value="Any">Any score</option>
-          <option value="50">50+ (Moderate)</option>
-          <option value="70">70+ (High)</option>
-          <option value="85">85+ (Critical)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Investor Strategy</label>
+          <option value="Any">Any score</option><option value="50">50+ Moderate</option>
+          <option value="70">70+ High</option><option value="85">85+ Critical</option>
+        </select></div>
+      <div class="field"><label>Investor Strategy</label>
         <select id="inp-strategy">
-          <option value="Wholesale">Wholesale</option>
-          <option value="Fix & Flip">Fix & Flip</option>
-          <option value="Buy & Hold">Buy & Hold</option>
-          <option value="Subject-To">Subject-To</option>
-          <option value="Seller Finance">Seller Finance</option>
-        </select>
-      </div>
+          <option value="Wholesale">Wholesale</option><option value="Fix & Flip">Fix & Flip</option>
+          <option value="Buy & Hold">Buy & Hold</option><option value="Subject-To">Subject-To</option>
+          <option value="Seller Finance">Seller Finance</option><option value="Novation">Novation</option>
+        </select></div>
+      <div class="field"><label>Seller Situation Filter</label>
+        <select id="inp-situation">
+          <option value="Any">Any Situation</option>
+          <option value="Facing Foreclosure">Facing Foreclosure</option>
+          <option value="Inherited/Probate">Inherited / Probate</option>
+          <option value="Divorce">Divorce</option>
+          <option value="Behind on Payments">Behind on Payments</option>
+          <option value="Tired Landlord">Tired Landlord</option>
+          <option value="Needs to Sell Fast">Needs to Sell Fast</option>
+          <option value="Damaged/AS-IS Property">Damaged / AS-IS</option>
+        </select></div>
     </div>
 
-    <div class="error-msg" id="error-msg">⚠ Please fill in a city/metro area to search.</div>
-
-    <button class="btn-generate" id="btn-gen" onclick="generateLeads()">
-      FIND DISTRESSED LEADS
-    </button>
+    <div class="error-msg" id="error-msg">⚠ Please fill in a city/metro area.</div>
+    <button class="btn-generate" id="btn-gen" onclick="generateLeads()">FIND DISTRESSED LEADS</button>
+    <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text"></div>
   </div>
 
-  <!-- Results -->
   <div id="results-section" style="display:none">
     <div class="results-header">
-      <div class="results-title">LEADS FOUND</div>
-      <div class="results-count" id="results-count">0 RESULTS</div>
+      <div><div class="results-title">LEADS FOUND</div><div class="results-count" id="results-count">0 RESULTS</div></div>
+      <div class="export-btns">
+        <button class="btn-export btn-excel" onclick="exportExcel()">⬇ EXCEL</button>
+        <button class="btn-export btn-csv" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-export btn-pdf" onclick="exportPDF()">⬇ PDF</button>
+      </div>
     </div>
-    <div class="leads-grid" id="leads-grid"></div>
+    <div class="toolbar">
+      <input type="text" id="filter-input" placeholder="Filter by name, address, signal, city..." oninput="filterLeads()" />
+      <select id="score-filter" onchange="filterLeads()" style="background:var(--dark);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;outline:none;font-family:'IBM Plex Sans',sans-serif">
+        <option value="0">All Scores</option><option value="50">50+</option><option value="70">70+</option><option value="80">80+</option><option value="90">90+</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="vcb" onclick="setView('card')">⊞ CARDS</button>
+        <button class="view-btn" id="vtb" onclick="setView('table')">≡ TABLE</button>
+      </div>
+    </div>
+    <div id="card-view"><div class="leads-grid" id="leads-grid"></div></div>
+    <div id="table-view" style="display:none">
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th onclick="sortLeads('distressScore')">Score ↕</th><th>Address</th><th>Owner</th><th>Type</th>
+          <th onclick="sortLeads('estValue')">Value ↕</th><th>ARV</th><th>Repairs</th><th>Signals</th>
+          <th>Phone</th><th>Email</th><th>Mailing Addr</th><th>Actions</th>
+        </tr></thead><tbody id="leads-tbody"></tbody></table>
+      </div>
+    </div>
   </div>
-
-  <div class="empty-state" id="empty-state">
+  <div class="empty-state show" id="empty-state">
     <span class="big-icon">🏚</span>
-    <p>Configure your search parameters and click <strong>Find Distressed Leads</strong> to generate AI-powered motivated seller leads.</p>
+    <p>Configure your search and click <strong>Find Distressed Leads</strong> to generate AI-powered motivated seller leads with contact info and outreach scripts.</p>
   </div>
 </div>
 
-<!-- Outreach Modal -->
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-top">
-      <h3>OUTREACH GENERATOR</h3>
-      <button class="btn-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="modal-lead-info" style="margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border);"></div>
+<!-- ============ PAGE: SKIP TRACE ============ -->
+<div class="page" id="page-skip">
+  <div class="hero">
+    <h1>Skip <em>Trace</em> Tool</h1>
+    <p>Pull real county record data on any property — owner info, sale history, tax records, valuation. Connect real skip trace APIs below for phone & email data.</p>
+  </div>
 
-      <div class="modal-generating" id="modal-loading">
-        <div class="big-spinner"></div>
-        Generating personalized outreach messages...
+  <div class="info-box" style="border-color:rgba(230,57,70,0.3);background:rgba(230,57,70,0.06)">
+    <strong style="color:var(--red)">⚠ Important about phone & email data:</strong> No AI can generate real phone numbers or emails — that data only comes from paid skip trace databases. 
+    The tools below show you exactly <strong>where to get real data</strong> and what each costs. Property ownership, sale history, and tax records ARE pulled from real county data via RentCast (free tier available).
+  </div>
+
+  <div class="search-panel">
+    <div class="section-label">Property Lookup — Real County Data</div>
+    <div class="form-grid">
+      <div class="field" style="grid-column:span 2"><label>Property Address</label>
+        <div class="city-wrap"><input type="text" id="skip-address" placeholder="123 Oak Street, Atlanta, GA 30301" autocomplete="off" oninput="cityAC(this,'skip-addr-dd')" onkeydown="cityNav(event,'skip-addr-dd')" onblur="setTimeout(()=>closeCityDD('skip-addr-dd'),200)" /><div class="city-dropdown" id="skip-addr-dd"></div></div>
       </div>
+      <div class="field"><label>Owner Name (optional)</label><input type="text" id="skip-owner" placeholder="John Smith" /></div>
+    </div>
+    <div class="section-label">What This Pulls (Real Data via RentCast)</div>
+    <div class="checkbox-grid">
+      <label class="checkbox-item"><input type="checkbox" value="ownership" checked><span>🏠 Owner Name & Type</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="mailing" checked><span>📬 Mailing Address</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="saleHistory" checked><span>📋 Sale History & Price</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="taxes" checked><span>💰 Tax Assessment & Amount</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="propDetails" checked><span>🏗️ Property Details</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="valuation" checked><span>📈 AVM Valuation</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="mortgage"><span>🏦 Mortgage Estimate (AI)</span></label>
+      <label class="checkbox-item"><input type="checkbox" value="distress"><span>🚨 Distress Analysis (AI)</span></label>
+    </div>
+    <button class="btn-generate" id="btn-skip" onclick="runSkipTrace()">RUN PROPERTY LOOKUP</button>
+    <div class="progress-bar" id="skip-progress-bar"><div class="progress-fill" id="skip-progress-fill"></div></div>
+    <div class="progress-text" id="skip-progress-text"></div>
+  </div>
 
+  <div id="skip-results" style="display:none"></div>
+
+  <!-- REAL SKIP TRACE SERVICES -->
+  <div class="search-panel" style="margin-top:24px">
+    <div class="section-label">Real Phone & Email Skip Trace Services</div>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:16px">These are the actual services professionals use to get real phone numbers and emails. All have free trials or pay-per-record pricing.</p>
+    <div class="mkt-grid">
+      <div class="mkt-card">
+        <h3>🥇 BatchData (BatchSkipTracing)</h3>
+        <p>Industry leader. 76% right-party contact rate — 3x the industry average. Returns verified mobile + landline numbers, deliverable emails, mailing address. Pierces LLC ownership. Pay-as-you-go, no subscription required.</p>
+        <ul>
+          <li>~$0.10–0.15 per record</li>
+          <li>Free trial available</li>
+          <li>API + bulk CSV upload</li>
+          <li>TCPA/DNC compliant</li>
+        </ul>
+        <a href="https://batchdata.io" target="_blank" class="mkt-gen-btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px;padding:10px">→ GET FREE TRIAL AT BATCHDATA.IO</a>
+      </div>
+      <div class="mkt-card">
+        <h3>🥈 PropStream</h3>
+        <p>Most popular all-in-one for investors. 98% US adult population coverage. Up to 4 phones + emails per owner. Includes MLS comps, list builder, driving for dollars app.</p>
+        <ul>
+          <li>$99/month + $0.12/skip trace</li>
+          <li>7-day free trial</li>
+          <li>Best for full lead workflow</li>
+          <li>Mobile app included</li>
+        </ul>
+        <a href="https://propstream.com" target="_blank" class="mkt-gen-btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px;padding:10px">→ START FREE TRIAL AT PROPSTREAM.COM</a>
+      </div>
+      <div class="mkt-card">
+        <h3>🥉 Skip Genie</h3>
+        <p>Best for hard-to-find owners — probate, absentee, inherited. Deep investigative data that other tools miss. Ideal for wholesalers working pre-foreclosure lists.</p>
+        <ul>
+          <li>Subscription-based</li>
+          <li>Free trial available</li>
+          <li>Best for probate & inherited</li>
+          <li>High-accuracy for hidden owners</li>
+        </ul>
+        <a href="https://skipgenie.com" target="_blank" class="mkt-gen-btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px;padding:10px">→ TRY SKIP GENIE</a>
+      </div>
+      <div class="mkt-card">
+        <h3>📱 DealMachine</h3>
+        <p>Best mobile-first option. Snap a photo while driving for dollars, get contact info instantly. Unlimited contact info on paid plans. Built-in AI dialing and route planning.</p>
+        <ul>
+          <li>$99–416/month</li>
+          <li>7-day free trial</li>
+          <li>Best for driving for dollars</li>
+          <li>Unlimited contacts on Pro</li>
+        </ul>
+        <a href="https://dealmachine.com" target="_blank" class="mkt-gen-btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px;padding:10px">→ TRY DEALMACHINE</a>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:8px">
+      <strong style="color:var(--blue)">💡 Pro workflow:</strong> Use this tool to identify distressed properties → export your lead list as CSV → upload to BatchData or PropStream to get real phone numbers → import back and start outreach. This is exactly how top wholesalers work.
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGE: KEYWORDS ============ -->
+<div class="page" id="page-keywords">
+  <div class="hero">
+    <h1>Seller <em>Keywords</em> & SEO</h1>
+    <p>The exact phrases motivated sellers type into Google — borrowed from top performers like John Buys Bay Area Houses. Click any keyword to copy it.</p>
+  </div>
+  <div class="info-box"><strong>💡 Pro Tip from John Buys Bay Area Houses:</strong> They rank #1 on Google by building city-specific landing pages targeting each of these keyword categories. Create one page per city + keyword combo (e.g. "sell my house fast Atlanta") to dominate local search.</div>
+  <div id="kw-container"></div>
+  <div class="search-panel" style="margin-top:24px">
+    <div class="section-label">AI Keyword Generator</div>
+    <div class="form-grid-2">
+      <div class="field"><label>Your City / Market</label><div class="city-wrap"><input type="text" id="kw-city" placeholder="e.g. Houston, TX" autocomplete="off" oninput="cityAC(this,'kw-city-dd')" onkeydown="cityNav(event,'kw-city-dd')" onblur="setTimeout(()=>closeCityDD('kw-city-dd'),200)" /><div class="city-dropdown" id="kw-city-dd"></div></div></div>
+      <div class="field"><label>Seller Situation</label>
+        <select id="kw-situation">
+          <option value="all distressed situations">All Situations</option>
+          <option value="foreclosure">Foreclosure</option>
+          <option value="probate and inherited homes">Probate / Inherited</option>
+          <option value="divorce">Divorce</option>
+          <option value="tired landlords">Tired Landlords</option>
+          <option value="tax delinquent">Tax Delinquent</option>
+        </select></div>
+    </div>
+    <button class="btn-generate" id="btn-kw" onclick="generateKeywords()">GENERATE KEYWORDS FOR MY MARKET</button>
+    <div class="progress-text" id="kw-progress" style="display:none"></div>
+    <div id="kw-results" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ============ PAGE: MARKETING ============ -->
+<div class="page" id="page-marketing">
+  <div class="hero">
+    <h1>Marketing <em>Arsenal</em></h1>
+    <p>AI-generated marketing materials for every channel — direct mail, bandit signs, Google Ads, Facebook Ads, cold call scripts, and more.</p>
+  </div>
+  <div class="search-panel">
+    <div class="section-label">Your Business Info</div>
+    <div class="form-grid">
+      <div class="field"><label>Your Name / Company</label><input type="text" id="mkt-name" placeholder="Mike Johnson / Fast Cash Homes" /></div>
+      <div class="field"><label>Your City / Market</label><div class="city-wrap"><input type="text" id="mkt-city" placeholder="Dallas, TX" autocomplete="off" oninput="cityAC(this,'mkt-city-dd')" onkeydown="cityNav(event,'mkt-city-dd')" onblur="setTimeout(()=>closeCityDD('mkt-city-dd'),200)" /><div class="city-dropdown" id="mkt-city-dd"></div></div></div>
+      <div class="field"><label>Phone Number</label><input type="text" id="mkt-phone" placeholder="(214) 555-1234" /></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="field"><label>Target Seller Situation</label>
+        <select id="mkt-situation">
+          <option value="any distressed seller">Any Distressed Seller</option>
+          <option value="homeowners facing foreclosure">Foreclosure</option>
+          <option value="probate and inherited property owners">Probate / Inherited</option>
+          <option value="divorcing homeowners">Divorce</option>
+          <option value="tired landlords with problem tenants">Tired Landlords</option>
+          <option value="tax delinquent homeowners">Tax Delinquent</option>
+          <option value="homeowners who need to sell fast">Need to Sell Fast</option>
+        </select></div>
+      <div class="field"><label>Investor Strategy</label>
+        <select id="mkt-strategy">
+          <option value="cash offer, fast close">Cash Offer / Fast Close</option>
+          <option value="wholesale assignment">Wholesale</option>
+          <option value="fix and flip">Fix & Flip</option>
+          <option value="subject-to financing">Subject-To</option>
+          <option value="seller financing">Seller Finance</option>
+        </select></div>
+    </div>
+  </div>
+  <div class="mkt-grid" id="mkt-cards-container"></div>
+</div>
+
+<!-- ============ PAGE: DEAL ANALYZER ============ -->
+<div class="page" id="page-analyzer">
+  <div class="hero">
+    <h1>Deal <em>Calculator</em></h1>
+    <p>Instantly analyze any deal — calculate MAO, profit margins, ROI, and holding costs for wholesale, fix & flip, and buy & hold strategies.</p>
+  </div>
+  <div class="analyzer-grid">
+    <div class="search-panel" style="margin-bottom:0">
+      <div class="section-label">Property Details</div>
+      <div class="field" style="margin-bottom:12px"><label>After Repair Value (ARV)</label><input type="number" id="calc-arv" placeholder="250000" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Estimated Repair Costs</label><input type="number" id="calc-repairs" placeholder="35000" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Asking / Purchase Price</label><input type="number" id="calc-price" placeholder="150000" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Closing Costs (%)</label><input type="number" id="calc-closing" placeholder="2" value="2" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Holding Costs / Month ($)</label><input type="number" id="calc-holding" placeholder="1500" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Holding Period (months)</label><input type="number" id="calc-months" placeholder="6" value="6" oninput="calcDeal()" /></div>
+      <div class="field" style="margin-bottom:12px"><label>Agent Commission (%)</label><input type="number" id="calc-commission" placeholder="6" value="6" oninput="calcDeal()" /></div>
+      <div class="field"><label>Strategy</label>
+        <select id="calc-strategy" onchange="calcDeal()">
+          <option value="flip">Fix & Flip</option>
+          <option value="wholesale">Wholesale</option>
+          <option value="hold">Buy & Hold</option>
+        </select></div>
+    </div>
+    <div>
+      <div class="search-panel" style="margin-bottom:14px">
+        <div class="section-label">Results</div>
+        <div id="calc-results"><p style="color:var(--muted);font-size:13px">Fill in the fields to see your deal analysis.</p></div>
+      </div>
+      <div class="search-panel" style="margin-bottom:0">
+        <div class="section-label">AI Deal Coach</div>
+        <div class="field" style="margin-bottom:10px"><label>Additional Context</label><textarea id="calc-context" style="background:var(--dark);border:1px solid var(--border);color:var(--text);width:100%;padding:10px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;height:80px;resize:none" placeholder="e.g. Roof needs full replacement, owner in pre-foreclosure, 3/2 in up-and-coming neighborhood..."></textarea></div>
+        <button class="btn-generate" onclick="getDealAdvice()" style="font-size:16px;padding:12px">GET AI DEAL ADVICE</button>
+        <div id="deal-advice" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ PAGE: MAP ============ -->
+<div class="page" id="page-map">
+  <div class="hero">
+    <h1>Property <em>Map</em></h1>
+    <p>View all generated leads on a live map. Click any pin to see details and launch outreach. Use the Draw tool to target a custom area.</p>
+  </div>
+  <div class="search-panel">
+    <div class="map-toolbar">
+      <div class="field" style="flex:1;min-width:200px"><label>Search Area / City</label>
+        <div class="city-wrap"><input type="text" id="map-city" placeholder="e.g. Atlanta, GA" autocomplete="off" oninput="cityAC(this,'map-city-dd')" onkeydown="cityNav(event,'map-city-dd')" onblur="setTimeout(()=>closeCityDD('map-city-dd'),200)" /><div class="city-dropdown" id="map-city-dd"></div></div>
+      </div>
+      <button class="btn-export btn-excel" style="align-self:flex-end;padding:9px 16px" onclick="mapSearchCity()">🔍 GO TO CITY</button>
+      <button class="btn-export btn-pdf" style="align-self:flex-end;padding:9px 16px" onclick="mapGenLeads()">⚡ GENERATE LEADS IN CITY</button>
+      <button class="btn-export btn-csv" style="align-self:flex-end;padding:9px 16px" onclick="mapFitLeads()">📍 FIT ALL LEADS</button>
+    </div>
+    <div class="draw-toolbar">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px">DRAW ZONE:</span>
+      <button class="btn-draw btn-draw-red" id="btn-draw-circle" onclick="startDrawCircle()">⭕ DRAW CIRCLE → FIND LEADS</button>
+      <button class="btn-draw" id="btn-draw-radius" onclick="changeRadius(-0.5)">➖ SMALLER</button>
+      <button class="btn-draw" id="btn-draw-radius2" onclick="changeRadius(0.5)">➕ BIGGER</button>
+      <button class="btn-draw btn-draw-green" id="btn-gen-circle" onclick="genLeadsInCircle()" style="display:none">⚡ GENERATE LEADS IN ZONE</button>
+      <button class="btn-draw" onclick="clearCircle()" style="display:none" id="btn-clear-circle">✕ CLEAR</button>
+    </div>
+    <div class="circle-info" id="circle-info"></div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#E63946"></div>HOT (80+)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F4A261"></div>WARM (60-79)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2A9D8F"></div>COOL (under 60)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#457B9D"></div>LOOKUP RESULT</div>
+    </div>
+  </div>
+  <div id="map-container"></div>
+  <div id="map-lead-list" style="margin-top:16px"></div>
+</div>
+
+<!-- ============ PAGE: HOUSE LOOKUP ============ -->
+<div class="page" id="page-lookup">
+  <div class="hero">
+    <h1>House <em>Lookup</em></h1>
+    <p>Look up any property — distressed or not. Get estimated value, owner info, tax data, comparable sales, neighborhood stats, and investment potential.</p>
+  </div>
+  <div class="search-panel">
+    <div class="section-label">Property Search</div>
+    <div class="form-grid">
+      <div class="field" style="grid-column:span 2"><label>Full Property Address</label><div class="city-wrap"><input type="text" id="lookup-address" placeholder="123 Main Street, Atlanta, GA 30301" autocomplete="off" oninput="cityAC(this,'lookup-addr-dd')" onkeydown="cityNav(event,'lookup-addr-dd')" onblur="setTimeout(()=>closeCityDD('lookup-addr-dd'),200)" /><div class="city-dropdown" id="lookup-addr-dd"></div></div></div>
+      <div class="field"><label>Lookup Type</label>
+        <select id="lookup-type">
+          <option value="full">Full Property Report</option>
+          <option value="value">Valuation Only</option>
+          <option value="investment">Investment Analysis</option>
+          <option value="owner">Owner & Contact Info</option>
+          <option value="comps">Comparable Sales</option>
+          <option value="neighborhood">Neighborhood Report</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-generate" id="btn-lookup" onclick="runLookup()">LOOK UP THIS PROPERTY</button>
+    <div class="progress-bar" id="lookup-pb"><div class="progress-fill" id="lookup-pf"></div></div>
+    <div class="progress-text" id="lookup-pt"></div>
+  </div>
+  <div id="lookup-result"></div>
+</div>
+
+</div><!-- end .app -->
+
+<!-- OUTREACH MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlay(event)">
+  <div class="modal">
+    <div class="modal-top"><h3>OUTREACH GENERATOR</h3><button class="btn-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div id="modal-info" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)"></div>
+      <div class="modal-loading" id="modal-loading"><div class="big-spin"></div>Generating personalized outreach...</div>
       <div id="modal-content" style="display:none">
-        <div class="outreach-tabs">
-          <button class="tab-btn active" onclick="switchTab('sms')">SMS Text</button>
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="switchTab('sms')">SMS</button>
           <button class="tab-btn" onclick="switchTab('letter')">Direct Mail</button>
-          <button class="tab-btn" onclick="switchTab('cold')">Cold Call Script</button>
+          <button class="tab-btn" onclick="switchTab('cold')">Cold Call</button>
+          <button class="tab-btn" onclick="switchTab('email')">Email</button>
+          <button class="tab-btn" onclick="switchTab('voicemail')">Voicemail</button>
         </div>
-        <div class="tab-content active" id="tab-sms">
-          <textarea class="outreach-text" id="msg-sms"></textarea>
-          <button class="btn-copy-msg" onclick="copyMsg('sms')">COPY SMS MESSAGE</button>
-        </div>
-        <div class="tab-content" id="tab-letter">
-          <textarea class="outreach-text" id="msg-letter" style="min-height:280px"></textarea>
-          <button class="btn-copy-msg" onclick="copyMsg('letter')">COPY LETTER</button>
-        </div>
-        <div class="tab-content" id="tab-cold">
-          <textarea class="outreach-text" id="msg-cold" style="min-height:260px"></textarea>
-          <button class="btn-copy-msg" onclick="copyMsg('cold')">COPY SCRIPT</button>
-        </div>
+        <div class="tab-pane active" id="tab-sms"><textarea class="msg-area" id="msg-sms"></textarea><button class="btn-copy" onclick="copyMsg('sms')">COPY SMS</button></div>
+        <div class="tab-pane" id="tab-letter"><textarea class="msg-area" id="msg-letter" style="min-height:260px"></textarea><button class="btn-copy" onclick="copyMsg('letter')">COPY LETTER</button></div>
+        <div class="tab-pane" id="tab-cold"><textarea class="msg-area" id="msg-cold" style="min-height:240px"></textarea><button class="btn-copy" onclick="copyMsg('cold')">COPY SCRIPT</button></div>
+        <div class="tab-pane" id="tab-email"><textarea class="msg-area" id="msg-email" style="min-height:240px"></textarea><button class="btn-copy" onclick="copyMsg('email')">COPY EMAIL</button></div>
+        <div class="tab-pane" id="tab-voicemail"><textarea class="msg-area" id="msg-voicemail"></textarea><button class="btn-copy" onclick="copyMsg('voicemail')">COPY VOICEMAIL SCRIPT</button></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+const PROXY_BASE='https://distressed-leads-proxy.onrender.com';
+let allLeads=[],filteredLeads=[],savedLeads=new Set(),msgsSent=0,msgsCopied=0,skipCount=0,currentLead=null,currentLeadIdx=0,currentView='card',sortDir={};
+let leafMap=null,mapMarkers=[],mapInitialized=false;
+let drawMode=false,drawnCircle=null,circleCenter=null,circleRadius=2;
 
-  let PROXY_BASE = 'https://distressed-leads-proxy.onrender.com';
-  function updateProxy() {
-    const val = document.getElementById('proxy-url').value.trim().replace(/\/+$/, '');
-    PROXY_BASE = val;
-    const dot = document.getElementById('proxy-dot');
-    if (val.startsWith('http')) { dot.classList.add('on'); } 
-    else { dot.classList.remove('on'); }
+// ---- NAVIGATION ----
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  const pg = document.getElementById('page-'+p);
+  if(pg) pg.classList.add('active');
+  if(event && event.target) event.target.classList.add('active');
+  try{ if(p==='keywords') renderKeywords(); }catch(e){ console.warn('renderKeywords:',e); }
+  try{ if(p==='marketing') renderMarketingCards(); }catch(e){ console.warn('renderMarketingCards:',e); }
+  if(p==='map'){
+    setTimeout(()=>{
+      try{ initMap(); if(allLeads.length) renderMapLeads(); }catch(e){ console.warn('map init:',e); }
+    },100);
   }
+}
 
-  let allLeads = [];
-  let savedLeads = new Set();
-  let msgsSent = 0;
-  let currentLead = null;
+function openOutreach(idx){
+  const lead = allLeads[idx];
+  if(!lead) return;
+  const overlay = document.getElementById('modal-overlay');
+  const info = document.getElementById('modal-info');
+  const loading = document.getElementById('modal-loading');
+  const modalContent = document.getElementById('modal-content');
+  overlay.style.display='flex';
+  loading.style.display='flex';
+  modalContent.style.display='none';
+  currentLeadIdx = idx;
+  info.innerHTML = `
+    <div style="font-weight:600;font-size:15px">${lead.ownerName} — ${lead.address}</div>
+    <div style="color:var(--sub);font-size:12px;margin-top:4px">${lead.city} · ${lead.propType} · Score: <span style="color:var(--red)">${lead.distressScore}</span></div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${(lead.signals||[]).map(s=>`<span class="sig hot">${s}</span>`).join('')}</div>
+  `;
+  generateOutreach(lead);
+}
 
-  function getSignals() {
-    return Array.from(document.querySelectorAll('#signal-checks input:checked')).map(cb => cb.value);
+function handleOverlay(e){
+  if(e.target.id==='modal-overlay') closeModal();
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').style.display='none';
+}
+
+async function generateOutreach(lead){
+  const loading = document.getElementById('modal-loading');
+  const modalContent = document.getElementById('modal-content');
+  try {
+    const text = await callAI('Generate 5 outreach messages for this distressed property seller. Owner: '+lead.ownerName+' Address: '+lead.address+' City: '+lead.city+' Distress signals: '+(lead.signals||[]).join(', ')+' Score: '+lead.distressScore+' Situation: '+(lead.summary||'')+' Motivation: '+(lead.motivation||'')+' Contact: '+JSON.stringify(lead.contactInfo||{})+'. Return ONLY valid JSON with keys: sms (under 160 chars), directMail (4 paragraphs), coldCall (full script), email (object with subject and body keys), voicemail (30 second script). No line breaks inside string values.', 1500);
+    const data = parseJSON(text);
+    loading.style.display='none';
+    modalContent.style.display='block';
+    const emailSubject = data.email && data.email.subject ? 'SUBJECT: '+data.email.subject+'\n\n' : '';
+    const emailBody = data.email && data.email.body ? data.email.body : (typeof data.email==='string'?data.email:'');
+    const tabs = ['SMS','DIRECT MAIL','COLD CALL','EMAIL','VOICEMAIL'];
+    const ids = ['sms-msg','mail-msg','call-msg','email-msg','vm-msg'];
+    const contents = [data.sms||'', data.directMail||'', data.coldCall||'', emailSubject+emailBody, data.voicemail||''];
+    let tabsHtml = '<div class="msg-tabs">';
+    tabs.forEach((t,i) => { tabsHtml += '<button class="msg-tab'+(i===0?' active':'')+'" onclick="switchMsg(this,\''+ids[i]+'\')">'+t+'</button>'; });
+    tabsHtml += '</div>';
+    let panelsHtml = '';
+    ids.forEach((id,i) => { panelsHtml += '<div id="'+id+'" class="msg-panel'+(i===0?' active':'')+'" style="'+(i>0?'display:none':'')+'"><pre>'+contents[i].replace(/</g,'&lt;')+'</pre><button class="btn-copy" onclick="copyMsg(\''+id+'\')">COPY</button></div>'; });
+    modalContent.innerHTML = tabsHtml + panelsHtml;
+  } catch(e) {
+    loading.innerHTML = '&#9888; Error: '+e.message;
   }
+}
+function switchMsg(btn, panelId){
+  document.querySelectorAll('.msg-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.msg-panel').forEach(p=>p.style.display='none');
+  btn.classList.add('active');
+  document.getElementById(panelId).style.display='block';
+}
 
-  function scoreColor(s) {
-    if (s >= 80) return 'score-high';
-    if (s >= 60) return 'score-med';
-    return 'score-low';
-  }
+function copyMsg(panelId){
+  const text = document.getElementById(panelId).querySelector('pre').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById(panelId).querySelector('.btn-copy');
+    btn.textContent='COPIED!'; setTimeout(()=>btn.textContent='COPY',2000);
+    msgsCopied++; document.getElementById('stat-msgs').textContent=msgsCopied;
+  });
+}
 
-  async function generateLeads() {
-    const city = document.getElementById('inp-city').value.trim();
-    const type = document.getElementById('inp-type').value;
-    const price = document.getElementById('inp-price').value;
-    const count = parseInt(document.getElementById('inp-count').value);
-    const minScore = document.getElementById('inp-minscore').value;
-    const strategy = document.getElementById('inp-strategy').value;
-    const signals = getSignals();
+// ---- AI CALL ----
+async function callAI(prompt,maxTokens=2000){
+  const res=await fetch(PROXY_BASE+'/api/claude',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
+  return data.content.map(b=>b.text||'').join('');
+}
 
-    const errEl = document.getElementById('error-msg');
-    if (!city) { errEl.classList.add('show'); return; }
-    errEl.classList.remove('show');
-
-    const btn = document.getElementById('btn-gen');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>ANALYZING MARKET DATA...';
-
-    document.getElementById('empty-state').classList.remove('show');
-    document.getElementById('results-section').style.display = 'none';
-
-    const prompt = `You are a real estate data intelligence AI. Generate ${count} realistic distressed property seller leads for the area: ${city}.
-
-Parameters:
-- Property Type: ${type}
-- Price Range: ${price}
-- Distress Signals: ${signals.join(', ')}
-- Min Distress Score: ${minScore}
-- Investor Strategy: ${strategy}
-
-Return ONLY a JSON array (no markdown, no explanation) with this exact structure:
-[
-  {
-    "address": "123 Main St",
-    "city": "${city}",
-    "propType": "Single Family",
-    "beds": 3,
-    "baths": 2,
-    "sqft": 1450,
-    "estValue": "$187,000",
-    "ownerName": "John Doe",
-    "yearsOwned": 14,
-    "signals": ["Pre-Foreclosure", "Tax Delinquent"],
-    "distressScore": 88,
-    "arv": "$210,000",
-    "estRepairs": "$22,000",
-    "summary": "Owner appears highly motivated. Behind 3 months on taxes with lis pendens filed. Property showing deferred maintenance."
-  }
-]
-
-Make addresses, names, values realistic for ${city}. Vary distress scores. Signals must be from: ${signals.join(', ')}. Each lead should have 1-4 signals. Distress score 1-99.`;
-
-    try {
-      const res = await fetch(PROXY_BASE + '/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      const data = await res.json();
-      const text = data.content.map(b => b.text || '').join('');
-      const cleaned = text.replace(/```json|```/g, '').trim();
-      const leads = JSON.parse(cleaned);
-
-      allLeads = leads;
-      renderLeads(leads);
-
-      // Update stats
-      document.getElementById('stat-generated').textContent = parseInt(document.getElementById('stat-generated').textContent) + leads.length;
-      document.getElementById('stat-hot').textContent = allLeads.filter(l => l.distressScore >= 80).length;
-
-    } catch (e) {
-      document.getElementById('error-msg').textContent = '⚠ Failed to generate leads. Please try again.';
-      document.getElementById('error-msg').classList.add('show');
+function parseJSON(text){
+  // Clean common AI JSON issues
+  let t=text.replace(/```json|```/g,'').trim();
+  // Fix trailing commas before } or ]
+  t=t.replace(/,\s*([}\]])/g,'$1');
+  // Fix unescaped newlines inside strings
+  t=t.replace(/"([^"]*?)"/g,(m,p1)=>'"'+p1.replace(/\n/g,'\\n').replace(/\r/g,'').replace(/\t/g,' ')+ '"');
+  // Find the outermost array or object
+  const isArr=t.indexOf('[')>-1&&(t.indexOf('{')===- 1||t.indexOf('[')<=t.indexOf('{'));
+  const s=isArr?t.indexOf('['):t.indexOf('{');
+  const e=isArr?t.lastIndexOf(']'):t.lastIndexOf('}');
+  const jsonStr=t.substring(s,e+1);
+  try{
+    return JSON.parse(jsonStr);
+  }catch(err){
+    // Last resort: extract individual objects if array parse fails
+    const objs=[];
+    const objRx=/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+    let m;
+    while((m=objRx.exec(jsonStr))!==null){
+      try{objs.push(JSON.parse(m[0]));}catch(e2){}
     }
-
-    btn.disabled = false;
-    btn.innerHTML = 'FIND DISTRESSED LEADS';
+    if(objs.length>0)return isArr?objs:objs[0];
+    throw new Error('JSON parse failed: '+err.message);
   }
+}
 
-  function renderLeads(leads) {
-    const grid = document.getElementById('leads-grid');
-    const section = document.getElementById('results-section');
+// ---- LEADS ----
+function getSignals(){return Array.from(document.querySelectorAll('#signal-checks input:checked')).map(c=>c.value)}
+function getContacts(){return Array.from(document.querySelectorAll('#contact-checks input:checked')).map(c=>c.value)}
+function sc(s){return s>=80?'sh':s>=60?'sm':'sl'}
 
-    grid.innerHTML = '';
-    section.style.display = 'block';
-    document.getElementById('results-count').textContent = leads.length + ' RESULTS';
+async function generateLeads(){
+  const city = document.getElementById('inp-city').value.trim();
+  if(!city){ alert('Please enter a city'); return; }
+  const count = parseInt(document.getElementById('inp-count').value)||25;
+  const signals = getSignals();
+  const strategy = document.getElementById('inp-strategy').value;
 
-    leads.forEach((lead, i) => {
-      const sc = lead.distressScore;
-      const scClass = scoreColor(sc);
-      const scoreWidth = sc + '%';
-      const isSaved = savedLeads.has(i);
+  const btn = document.getElementById('btn-gen');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>PULLING FROM PROPERTYRADAR...';
+  document.getElementById('progress-bar').classList.add('show');
+  document.getElementById('progress-text').classList.add('show');
+  const pb = document.getElementById('progress-fill');
+  const pt = document.getElementById('progress-text');
+  pb.style.width='15%'; pt.textContent='Connecting to PropertyRadar...';
 
-      const signalTags = lead.signals.map(s => {
-        const cls = sc >= 80 ? 'hot' : sc >= 60 ? 'warm' : 'cool';
-        return `<span class="signal-tag ${cls}">${s}</span>`;
-      }).join('');
+  const prKey = getPRKey();
+  const parts = city.split(',');
+  const cityName = parts[0].trim();
+  const stateCode = (parts[1]||'').trim().split(' ')[0];
 
-      const card = document.createElement('div');
-      card.className = 'lead-card';
-      card.style.animationDelay = (i * 0.07) + 's';
-      card.innerHTML = `
-        <div class="score-bar" style="width:${scoreWidth}"></div>
-        <div class="lead-card-top">
-          <div class="lead-address">
-            ${lead.address}
-            <small>${lead.city}</small>
-          </div>
-          <div class="distress-score ${scClass}">
-            ${sc}
-            <small>DISTRESS</small>
-          </div>
-        </div>
-        <div class="lead-signals">${signalTags}</div>
-        <div class="lead-details">
-          <div class="detail-item">
-            <div class="d-label">Owner</div>
-            <div class="d-value">${lead.ownerName}</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Property Type</div>
-            <div class="d-value">${lead.propType}</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Est. Value</div>
-            <div class="d-value">${lead.estValue}</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Size</div>
-            <div class="d-value">${lead.beds}bd / ${lead.baths}ba · ${lead.sqft?.toLocaleString()} sqft</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">ARV</div>
-            <div class="d-value">${lead.arv}</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Est. Repairs</div>
-            <div class="d-value">${lead.estRepairs}</div>
-          </div>
-        </div>
-        <div class="lead-summary">"${lead.summary}"</div>
-        <div class="lead-actions">
-          <button class="btn-sm btn-contact" onclick="openOutreach(${i})">✉ GENERATE OUTREACH</button>
-          <button class="btn-sm btn-save ${isSaved ? 'saved' : ''}" id="save-btn-${i}" onclick="toggleSave(${i})">
-            ${isSaved ? '★ SAVED' : '☆ SAVE'}
-          </button>
-        </div>
-      `;
-      grid.appendChild(card);
+  let leads = [];
+
+  try {
+    pb.style.width='35%'; pt.textContent='Fetching distressed properties from PropertyRadar...';
+    const resp = await fetch(PROXY_BASE+'/api/propertyradar/leads', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-pr-token':prKey},
+      body:JSON.stringify({city:cityName, state:stateCode, signals, count})
     });
-  }
+    const json = await resp.json();
+    console.log('PR leads response:', json);
 
-  function toggleSave(i) {
-    const btn = document.getElementById('save-btn-' + i);
-    if (savedLeads.has(i)) {
-      savedLeads.delete(i);
-      btn.classList.remove('saved');
-      btn.textContent = '☆ SAVE';
+    if(json.error) {
+      pt.textContent='PropertyRadar error: '+json.error+'. Falling back to AI...';
+    } else if(json.results && json.results.length>0) {
+      pb.style.width='70%'; pt.textContent='Mapping '+json.results.length+' real properties...';
+      leads = json.results.map((p,i) => mapPRToLead(p,i));
+      console.log('Mapped leads:', leads.length, leads[0]);
     } else {
-      savedLeads.add(i);
-      btn.classList.add('saved');
-      btn.textContent = '★ SAVED';
+      pt.textContent='PropertyRadar returned 0 results for '+cityName+'. Trying AI fallback...';
     }
-    document.getElementById('stat-saved').textContent = savedLeads.size;
+  } catch(e) {
+    console.error('PR leads fetch error:', e);
+    pt.textContent='Network error: '+e.message+'. Using AI fallback...';
   }
 
-  async function openOutreach(i) {
-    currentLead = allLeads[i];
-    const overlay = document.getElementById('modal-overlay');
-    const loading = document.getElementById('modal-loading');
-    const content = document.getElementById('modal-content');
-    const info = document.getElementById('modal-lead-info');
+  // AI fallback if PR returned nothing
+  if(leads.length===0) {
+    pb.style.width='50%'; pt.textContent='Generating AI leads for '+cityName+'...';
+    try {
+      const text = await callAI(`Generate ${count} realistic distressed property leads for ${city}. Strategy: ${strategy}. Signals: ${signals.join(', ')||'general distress'}.
+Return ONLY a valid JSON array. Each object must have these exact keys:
+address, ownerName, propType, beds, baths, sqft, yearBuilt, estValue, equity, equityPct, loanBalance, lender, lastSaleDate, lastSalePrice, mailingAddress, phone, email, signals (array), distressScore (0-99), urgencyLevel (HIGH/MEDIUM/LOW), summary, motivation, arv, estRepairs, lat, lng, isRealData (false)
+Make addresses realistic for ${cityName}. distressScore reflects signals. lat/lng near city center.`, Math.min(count*150, 3000));
+      const parsed = parseJSON(text);
+      leads = Array.isArray(parsed) ? parsed : (parsed.leads||[]);
+      leads = leads.map((l,i)=>({...l, id:'ai_'+i, isRealData:false, city:l.city||city}));
+    } catch(e2) {
+      console.error('AI fallback error:', e2);
+    }
+  }
 
-    info.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-weight:600;font-size:15px;">${currentLead.address}</div>
-          <div style="color:var(--sub);font-size:12px;margin-top:2px;">${currentLead.city} · ${currentLead.propType} · Owner: ${currentLead.ownerName}</div>
-          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-            ${currentLead.signals.map(s => `<span class="signal-tag hot">${s}</span>`).join('')}
-          </div>
+  pb.style.width='100%'; pt.textContent='Done! '+leads.length+' leads loaded.';
+  allLeads = leads;
+  filteredLeads = [...leads];
+  setTimeout(()=>{
+    document.getElementById('progress-bar').classList.remove('show');
+    document.getElementById('progress-text').classList.remove('show');
+  }, 2000);
+
+  // Update stats
+  document.getElementById('stat-generated').textContent = leads.length;
+  document.getElementById('stat-hot').textContent = leads.filter(l=>l.distressScore>=80).length;
+  document.getElementById('stat-contacts').textContent = leads.filter(l=>l.phone&&!l.phone.includes('Unlock')).length;
+
+  btn.disabled=false; btn.innerHTML='FIND DISTRESSED LEADS';
+  renderLeads();
+  document.getElementById('empty-state').classList.remove('show');
+  document.getElementById('results-section').style.display='block';
+  document.getElementById('results-count').textContent = leads.length+' RESULTS'+(leads[0]?.isRealData?' (REAL PR DATA)':' (AI GENERATED)');
+}
+
+
+async function runSkipTrace(){
+  const addr = document.getElementById('skip-address').value.trim();
+  if(!addr){ alert('Please enter a property address'); return; }
+  const btn = document.getElementById('btn-skip');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>SEARCHING PROPERTYRADAR...';
+  document.getElementById('skip-progress-bar').classList.add('show');
+  document.getElementById('skip-progress-text').classList.add('show');
+  const pf = document.getElementById('skip-progress-fill');
+  const pt = document.getElementById('skip-progress-text');
+  pf.style.width='20%'; pt.textContent='Connecting to PropertyRadar...';
+
+  const prKey = getPRKey();
+  let prData = null;
+
+  try {
+    pf.style.width='50%'; pt.textContent='Pulling owner + property data from PropertyRadar...';
+    const resp = await fetch(PROXY_BASE+'/api/propertyradar/search', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-pr-token':prKey},
+      body:JSON.stringify({address:addr})
+    });
+    const json = await resp.json();
+    console.log('PR search response:', json);
+    if(json.error) { console.warn('PR error:', json.error); pt.textContent='PR error: '+json.error; }
+    else if(json.results && json.results.length>0) {
+      prData = json.results[0];
+      console.log('PR property data:', prData);
+      pf.style.width='75%'; pt.textContent='Got real data! Building report...';
+    } else {
+      pt.textContent='No PR match found. Building AI estimate...';
+    }
+  } catch(e) {
+    console.error('PR search error:', e);
+    pt.textContent='Error: '+e.message;
+  }
+
+  pf.style.width='90%';
+  const lead = prData ? mapPRToLead(prData, 0) : null;
+
+  const result = document.getElementById('skip-results');
+  result.style.display='block';
+
+  if(lead) {
+    // Show REAL data from PropertyRadar
+    result.innerHTML = `
+      <div class="search-panel" style="border-color:var(--green)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="background:var(--green);color:#fff;padding:3px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px">✅ REAL PROPERTYRADAR DATA</span>
+          ${lead.propertyURL?`<a href="${lead.propertyURL}" target="_blank" style="font-size:11px;color:var(--green)">View in PropertyRadar →</a>`:''}
         </div>
-        <div class="distress-score ${scoreColor(currentLead.distressScore)}" style="font-size:28px">
-          ${currentLead.distressScore}<small>SCORE</small>
+        <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px">${lead.address}</h3>
+        <div style="color:var(--sub);font-size:13px;margin-bottom:16px">${lead.city} ${lead.zip}</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+          <div class="data-box"><div class="data-label">OWNER</div><div class="data-val">${lead.ownerName}</div></div>
+          <div class="data-box"><div class="data-label">MAILING ADDRESS</div><div class="data-val" style="font-size:11px">${lead.mailingAddress}</div></div>
+          <div class="data-box"><div class="data-label">PHONE</div><div class="data-val" style="color:${lead.phone.includes('Unlock')?'var(--muted)':'var(--green)'}">${lead.phone}</div></div>
+          <div class="data-box"><div class="data-label">EMAIL</div><div class="data-val" style="color:${lead.email.includes('Unlock')?'var(--muted)':'var(--green)'};font-size:11px">${lead.email}</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px">
+          <div class="data-box"><div class="data-label">PROPERTY TYPE</div><div class="data-val">${lead.propType}</div></div>
+          <div class="data-box"><div class="data-label">BEDS/BATHS</div><div class="data-val">${lead.beds} / ${lead.baths}</div></div>
+          <div class="data-box"><div class="data-label">SQ FT</div><div class="data-val">${lead.sqft?lead.sqft.toLocaleString():'N/A'}</div></div>
+          <div class="data-box"><div class="data-label">YEAR BUILT</div><div class="data-val">${lead.yearBuilt||'N/A'}</div></div>
+          <div class="data-box"><div class="data-label">LOT SIZE</div><div class="data-val">${lead.lotSize||'N/A'}</div></div>
+          <div class="data-box"><div class="data-label">UNITS</div><div class="data-val">${lead.units||1}</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px">
+          <div class="data-box" style="border-color:var(--green)"><div class="data-label">ESTIMATED VALUE (AVM)</div><div class="data-val" style="color:var(--green);font-size:18px">${lead.estValue}</div></div>
+          <div class="data-box"><div class="data-label">ASSESSED VALUE</div><div class="data-val">${lead.assessedValue}</div></div>
+          <div class="data-box"><div class="data-label">ANNUAL TAXES</div><div class="data-val">${lead.annualTaxes}</div></div>
+          <div class="data-box" style="border-color:#F4A261"><div class="data-label">AVAILABLE EQUITY</div><div class="data-val" style="color:#F4A261;font-size:16px">${lead.equity} (${lead.equityPct})</div></div>
+          <div class="data-box"><div class="data-label">LOAN BALANCE</div><div class="data-val">${lead.loanBalance}</div></div>
+          <div class="data-box"><div class="data-label">LENDER</div><div class="data-val" style="font-size:11px">${lead.lender}</div></div>
+          <div class="data-box"><div class="data-label">LAST SALE DATE</div><div class="data-val">${lead.lastSaleDate}</div></div>
+          <div class="data-box"><div class="data-label">LAST SALE PRICE</div><div class="data-val">${lead.lastSalePrice}</div></div>
+        </div>
+
+        ${lead.signals.length?`
+        <div style="margin-bottom:16px">
+          <div class="data-label" style="margin-bottom:8px">DISTRESS SIGNALS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${lead.signals.map(s=>`<span class="sig hot">${s}</span>`).join('')}
+          </div>
+        </div>`:''}
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn-generate" style="padding:10px 20px;font-size:14px" onclick="openOutreachForSkip(${JSON.stringify(lead).replace(/"/g,'&quot;')})">✉ GENERATE OUTREACH</button>
+          ${lead.propertyURL?`<a href="${lead.propertyURL}" target="_blank" class="btn-export btn-excel" style="padding:10px 20px;text-decoration:none">VIEW FULL REPORT IN PROPERTYRADAR →</a>`:''}
+        </div>
+      </div>`;
+  } else {
+    // No PR data - show honest message + AI estimate
+    result.innerHTML = `
+      <div class="search-panel" style="border-color:var(--muted)">
+        <div style="background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);padding:10px 14px;margin-bottom:16px;font-size:12px">
+          ⚠ PropertyRadar returned no data for this address. This may be AI-estimated data.
+        </div>
+        <div style="color:var(--sub);font-size:13px">Address: <strong style="color:var(--text)">${addr}</strong></div>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px">Check the address format (e.g. "123 Main St, Atlanta, GA") and try again, or look up the property directly at <a href="https://app.propertyradar.com" target="_blank" style="color:var(--green)">propertyradar.com</a>.</p>
+      </div>`;
+  }
+
+  skipCount++; document.getElementById('stat-skipped').textContent=skipCount;
+  pf.style.width='100%';
+  setTimeout(()=>{ document.getElementById('skip-progress-bar').classList.remove('show'); document.getElementById('skip-progress-text').classList.remove('show'); },1500);
+  btn.disabled=false; btn.innerHTML='RUN PROPERTY LOOKUP';
+}
+
+function openOutreachForSkip(lead){
+  allLeads.unshift(lead);
+  openOutreach(0);
+}
+
+
+async function runLookup(){
+  const addr = document.getElementById('lookup-address').value.trim();
+  const type = document.getElementById('lookup-type').value;
+  if(!addr){ alert('Please enter a property address'); return; }
+  const btn = document.getElementById('btn-lookup');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>LOOKING UP...';
+  document.getElementById('lookup-pb').classList.add('show');
+  document.getElementById('lookup-pt').classList.add('show');
+  const pf = document.getElementById('lookup-pf');
+  const pt2 = document.getElementById('lookup-pt');
+  pf.style.width='20%'; pt2.textContent='Searching PropertyRadar...';
+
+  const prKey = getPRKey();
+  let prData = null;
+
+  if(prKey){
+    try{
+      const resp = await fetch(PROXY_BASE+'/api/propertyradar/search',{
+        method:'POST', headers:{'Content-Type':'application/json','x-pr-token':prKey},
+        body:JSON.stringify({address:addr})
+      });
+      const json = await resp.json();
+      if(json.results && json.results.length>0) prData = json.results[0];
+    } catch(e){ console.warn('PR lookup error:',e); }
+  }
+
+  pf.style.width='60%'; pt2.textContent='Generating investment analysis...';
+
+  try{
+    let ctx = prData ? 'REAL PROPERTYRADAR DATA: Owner:'+( prData.OwnerFirstName||'')+' '+(prData.OwnerLastName||'')+' | Mailing:'+(prData.OwnerAddress||'')+' '+(prData.OwnerCity||'')+' '+(prData.OwnerState||'')+' | Type:'+prData.PType+' | Beds:'+prData.Beds+' Baths:'+prData.Baths+' SqFt:'+prData.SqFt+' Built:'+prData.YearBuilt+' | AVM:$'+(prData.AVM||0)+' | Assessed:$'+(prData.AssessedValue||0)+' | Taxes:$'+(prData.AnnualTaxes||0)+'/yr | Equity:'+prData.EquityPercent+'% ($'+(prData.AvailableEquity||0)+') | LoanBal:$'+(prData.TotalLoanBalance||0)+' | Lender:'+(prData.FirstLenderOriginal||'?')+' | LastSale:'+(prData.LastTransferRecDate||'?')+' for $'+(prData.LastTransferValue||0)+' | Foreclosure:'+(prData.inForeclosure||'No')+' | Vacant:'+(prData.isSiteVacant||'No')+' | Absentee:'+(prData.isSameMailingOrExempt==='No'?'Yes':'No') : 'No real data. Generate estimates for: '+addr;
+
+    const text = await callAI('Generate comprehensive property investment report. '+ctx+' Report type: '+type+'. Return ONLY valid JSON: {"address":"'+addr.replace(/'/g,'')+'","isRealData":'+(prData?'true':'false')+',"propertyType":"Single Family","beds":3,"baths":2,"sqft":1850,"lotSize":"0.25 acres","yearBuilt":1987,"estimatedValue":"$285000","avmLow":"$270000","avmHigh":"$300000","estimatedRent":"$1800/mo","pricePerSqft":"$154","arvRenovated":"$340000","taxAssessedValue":"$261000","annualTaxes":"$3200","ownerName":"James Morrison","ownerSince":"2009","purchasePrice":"$198000","estimatedEquity":"$167000","mortgageBalance":"$118000","lender":"Wells Fargo","phone":"contact PR to unlock","email":"contact PR to unlock","mailingAddress":"same","listingStatus":"Off Market","lastSaleDate":"2009-03","lastSalePrice":"$198000","distressIndicators":[],"distressScore":22,"investmentPotential":"Medium","capRate":"6.2%","cashOnCash":"8.1%","grossYield":"7.6%","neighborhoodGrade":"B+","walkScore":72,"crimeIndex":"Below Average","nearbySchools":[{"name":"Oak Park Elementary","rating":"8/10","distance":"0.3mi"}],"comps":[{"address":"nearby","beds":3,"baths":2,"sqft":1780,"soldDate":"2025-11","soldPrice":"$278000"}],"marketTrend":"Appreciating","avgDaysOnMarket":28,"investorNotes":"specific advice","bestStrategy":"Buy and Hold","redFlags":[],"greenFlags":[]}', 2000);
+
+    const data = parseJSON(text);
+    if(prData){
+      const fn=(prData.OwnerFirstName||'').trim(), ln=(prData.OwnerLastName||'').trim();
+      data.ownerName = [fn,ln].filter(Boolean).join(' ') || prData.Owner || data.ownerName;
+      if(prData.OwnerAddress) data.mailingAddress=[prData.OwnerAddress,prData.OwnerCity,prData.OwnerState,prData.OwnerZipFive].filter(Boolean).join(', ');
+      data.phone = prData.OwnerPhone||prData.PrimaryPhone1||'Unlock in PropertyRadar';
+      data.email = prData.OwnerEmail||prData.PrimaryEmail1||'Unlock in PropertyRadar';
+      if(prData.Beds) data.beds=prData.Beds;
+      if(prData.Baths) data.baths=prData.Baths;
+      if(prData.SqFt) data.sqft=prData.SqFt;
+      if(prData.YearBuilt) data.yearBuilt=prData.YearBuilt;
+      if(prData.PType) data.propertyType=prData.PType;
+      if(prData.AVM) data.estimatedValue='$'+Math.round(prData.AVM).toLocaleString();
+      if(prData.AssessedValue) data.taxAssessedValue='$'+Math.round(prData.AssessedValue).toLocaleString();
+      if(prData.AnnualTaxes) data.annualTaxes='$'+Math.round(prData.AnnualTaxes).toLocaleString()+'/yr';
+      if(prData.AvailableEquity) data.estimatedEquity='$'+Math.round(prData.AvailableEquity).toLocaleString();
+      if(prData.TotalLoanBalance) data.mortgageBalance='$'+Math.round(prData.TotalLoanBalance).toLocaleString();
+      if(prData.FirstLenderOriginal) data.lender=prData.FirstLenderOriginal;
+      if(prData.LastTransferRecDate) data.lastSaleDate=prData.LastTransferRecDate;
+      if(prData.LastTransferValue) data.lastSalePrice='$'+Math.round(prData.LastTransferValue).toLocaleString();
+      const flags=[];
+      if(prData.inForeclosure==='Yes') flags.push('IN FORECLOSURE');
+      if(prData.isSiteVacant==='Yes') flags.push('VACANT');
+      if(prData.isSameMailingOrExempt==='No') flags.push('ABSENTEE OWNER');
+      if(prData.DefaultAmount>0) flags.push('IN DEFAULT $'+Math.round(prData.DefaultAmount).toLocaleString());
+      data.distressIndicators=flags;
+      let ds=10; if(prData.inForeclosure==='Yes')ds+=35; if(prData.isSiteVacant==='Yes')ds+=20; if(prData.DefaultAmount>0)ds+=20; if(prData.isSameMailingOrExempt==='No')ds+=10; if(prData.EquityPercent>=40)ds+=5;
+      data.distressScore=Math.min(ds,99);
+      data.isRealData=true;
+    }
+    pf.style.width='100%'; pt2.textContent=prData?'✅ Real PropertyRadar data loaded!':'⚠ AI estimates (add PR key for real data)';
+    renderLookupResult(data);
+    setTimeout(()=>{document.getElementById('lookup-pb').classList.remove('show');document.getElementById('lookup-pt').classList.remove('show');},3000);
+  } catch(e){ pt2.textContent='⚠ '+e.message; console.error(e); }
+  btn.disabled=false; btn.innerHTML='LOOK UP THIS PROPERTY';
+}
+
+function renderSkipResult(d){
+  const res=document.getElementById('skip-results'); res.style.display='block';
+  const realBadge = d.isRealData
+    ? '<span style="background:rgba(42,157,143,0.15);color:var(--green);border:1px solid rgba(42,157,143,0.3);font-family:monospace;font-size:9px;padding:3px 10px;letter-spacing:1px">✅ REAL COUNTY DATA</span>'
+    : '<span style="background:rgba(244,162,97,0.12);color:var(--amber);border:1px solid rgba(244,162,97,0.3);font-family:monospace;font-size:9px;padding:3px 10px;letter-spacing:1px">⚠ AI ESTIMATED — Add RentCast key for real data</span>';
+  const ds=d.distressScore||0;
+  const dsColor=ds>=80?'var(--red)':ds>=60?'var(--amber)':'var(--green)';
+
+  res.innerHTML=`
+  <div class="search-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:18px;font-weight:600">${d.address} ${realBadge}</div>
+        <div style="color:var(--sub);font-size:12px;margin-top:6px">${d.propertyType||'Property'} · ${d.beds||'?'}bd / ${d.baths||'?'}ba · ${(d.sqft||0).toLocaleString()} sqft · Built ${d.yearBuilt||'?'}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${(d.distressIndicators||[]).filter(x=>x&&x!=='none').map(x=>`<span class="sig hot">${x}</span>`).join('')}
+          <span class="sig ${ds>=80?'hot':ds>=60?'warm':'cool'}">${ds} DISTRESS SCORE</span>
+          <span class="sig cool" style="color:var(--green)">${d.investmentPotential||''} POTENTIAL</span>
         </div>
       </div>
-    `;
+      <div style="text-align:right">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--amber)">${d.estimatedValue||'—'}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:monospace">ESTIMATED VALUE</div>
+        ${d.avmLow?`<div style="font-size:11px;color:var(--sub)">Range: ${d.avmLow} – ${d.avmHigh}</div>`:''}
+        <div style="font-size:12px;color:var(--green);margin-top:4px">Equity: ${d.estimatedEquity||'—'}</div>
+      </div>
+    </div>
 
-    overlay.classList.add('open');
-    loading.classList.add('show');
-    content.style.display = 'none';
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="skip-result">
+        <div class="ci-title">👤 Owner Info</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${d.ownerName||'Unknown'}</div>
+        <div style="font-size:11px;color:var(--sub)">Type: ${d.ownerType||'Individual'}</div>
+        <div style="font-size:11px;color:var(--sub)">Owner Since: ${d.ownerSince||'Unknown'}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:6px">📬 ${d.mailingAddress||'Same as property'}</div>
+      </div>
+      <div class="skip-result">
+        <div class="ci-title">💰 Financial</div>
+        <div style="font-size:12px;color:var(--sub);line-height:2">
+          Last Sale: <span style="color:var(--text)">${d.lastSaleDate||'—'}</span><br>
+          Sale Price: <span style="color:var(--amber)">${d.lastSalePrice||'—'}</span><br>
+          Tax Assessed: <span style="color:var(--text)">${d.taxAssessedValue||'—'}</span><br>
+          Annual Taxes: <span style="color:var(--text)">${d.annualTaxes||'—'}</span><br>
+          Est. Mortgage: <span style="color:var(--text)">${d.estimatedMortgageBalance||'—'}</span><br>
+          Monthly Pmt: <span style="color:var(--text)">${d.estimatedMonthlyPayment||'—'}</span>
+        </div>
+      </div>
+      <div class="skip-result">
+        <div class="ci-title">📈 Investment</div>
+        <div style="font-size:12px;color:var(--sub);line-height:2">
+          Est. Rent: <span style="color:var(--green)">${d.estimatedRent||'—'}</span><br>
+          Cap Rate: <span style="color:var(--text)">${d.capRate||'—'}</span><br>
+          Best Strategy: <span style="color:var(--amber)">${d.bestStrategy||'—'}</span>
+        </div>
+        ${d.priorSales?.length?`<div style="margin-top:8px;font-size:10px;color:var(--muted)">Prior: ${d.priorSales.map(s=>s.date+' — '+s.price).join(' | ')}</div>`:''}
+      </div>
+    </div>
 
-    const strategy = document.getElementById('inp-strategy').value;
+    ${d.investorNotes?`<div style="background:rgba(42,157,143,0.08);border:1px solid rgba(42,157,143,0.2);padding:14px;margin-bottom:14px"><div class="ci-title">💡 Investor Notes</div><div style="font-size:12px;color:var(--sub);line-height:1.7">${d.investorNotes}</div></div>`:''}
 
-    const prompt = `You are an expert real estate investor outreach copywriter specializing in distressed property acquisitions.
+    ${d.howToContact?`<div style="background:rgba(230,57,70,0.06);border:1px solid rgba(230,57,70,0.2);padding:14px;margin-bottom:14px"><div class="ci-title" style="color:var(--red)">📞 How to Contact This Owner</div><div style="font-size:12px;color:var(--sub);line-height:1.7">${d.howToContact}</div></div>`:''}
 
-Lead Details:
-- Owner: ${currentLead.ownerName}
-- Property: ${currentLead.address}, ${currentLead.city}
-- Type: ${currentLead.propType} (${currentLead.beds}bd/${currentLead.baths}ba, ${currentLead.sqft} sqft)
-- Estimated Value: ${currentLead.estValue}
-- Distress Signals: ${currentLead.signals.join(', ')}
-- Investor Strategy: ${strategy}
-- Situation: ${currentLead.summary}
+    <div style="background:rgba(69,123,157,0.08);border:1px solid rgba(69,123,157,0.25);padding:14px">
+      <div class="ci-title" style="color:var(--blue)">📱 Get Real Phone & Email — Next Steps</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.8;margin-top:6px">
+        To get real verified phone numbers and emails for <strong style="color:var(--text)">${d.ownerName||'this owner'}</strong>, use one of these services:<br>
+        <strong style="color:var(--amber)">BatchData.io</strong> — ~$0.10/record, 76% accuracy, no subscription required &nbsp;|&nbsp;
+        <strong style="color:var(--amber)">PropStream.com</strong> — $99/mo, 7-day free trial, best all-in-one &nbsp;|&nbsp;
+        <strong style="color:var(--amber)">DealMachine.com</strong> — best mobile app, driving for dollars<br>
+        Go to the <strong>Skip Trace</strong> tab and scroll down to see all options with direct signup links.
+      </div>
+    </div>
+  </div>`;
+}
 
-Generate 3 personalized outreach messages. Return ONLY JSON (no markdown):
-{
-  "sms": "A short, empathetic 2-3 sentence SMS text (under 160 chars ideally). Non-pushy. Reference their situation subtly.",
-  "letter": "A warm 3-paragraph direct mail letter. Paragraph 1: Empathy/intro. Paragraph 2: How you can help. Paragraph 3: CTA with contact info placeholder [YOUR PHONE]. Sign as [YOUR NAME], Local Real Estate Investor.",
-  "cold": "A 4-part cold call script: Opening (10 sec), Discovery question, Value proposition for their ${strategy} situation, and Soft close. Format with labels: OPENING:, DISCOVERY:, VALUE:, CLOSE:"
-}`;
 
-    try {
-      const res = await fetch(PROXY_BASE + '/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1200,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content.map(b => b.text || '').join('');
-      const cleaned = text.replace(/```json|```/g, '').trim();
-      const msgs = JSON.parse(cleaned);
+function renderLookupResult(d){
+  const ds=d.distressScore||0;
+  const realBadge2 = d.isRealData 
+    ? '<span style="background:rgba(42,157,143,0.15);color:var(--green);border:1px solid rgba(42,157,143,0.3);font-family:monospace;font-size:9px;padding:3px 8px;letter-spacing:1px">✅ REAL COUNTY DATA</span>'
+    : '<span style="background:rgba(244,162,97,0.12);color:var(--amber);border:1px solid rgba(244,162,97,0.3);font-family:monospace;font-size:9px;padding:3px 8px;letter-spacing:1px">⚠ AI ESTIMATED</span>';
+  const dsColor=ds>=80?'var(--red)':ds>=60?'var(--amber)':'var(--green)';
+  const potColor=d.investmentPotential==='High'?'var(--green)':d.investmentPotential==='Medium'?'var(--amber)':'var(--muted)';
+  document.getElementById('lookup-result').innerHTML=`
+  <div class="lookup-result">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px">${d.address} <span style="font-size:14px">${realBadge2}</span></div>
+        <div style="color:var(--sub);font-size:13px;margin-top:4px">${d.propertyType} · ${d.beds}bd/${d.baths}ba · ${d.sqft?.toLocaleString()} sqft · Built ${d.yearBuilt}</div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="sig ${ds>=80?'hot':ds>=60?'warm':'cool'}">${ds} DISTRESS SCORE</span>
+          <span class="sig cool" style="color:${potColor};border-color:${potColor}">${d.investmentPotential} INVESTMENT POTENTIAL</span>
+          <span class="sig warm">${d.listingStatus}</span>
+          <span class="sig cool">${d.marketTrend}</span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--amber)">${d.estimatedValue}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">ESTIMATED VALUE</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px">ARV Renovated: ${d.arvRenovated}</div>
+        ${d.avmLow?`<div style="font-size:11px;color:var(--muted);margin-top:1px">AVM Range: ${d.avmLow} – ${d.avmHigh}</div>`:''}
+      </div>
+    </div>
 
-      document.getElementById('msg-sms').value = msgs.sms;
-      document.getElementById('msg-letter').value = msgs.letter;
-      document.getElementById('msg-cold').value = msgs.cold;
+    <div class="lookup-grid">
+      <div class="lookup-item"><div class="lk-label">Owner</div><div class="lk-val">${d.ownerName}</div></div>
+      <div class="lookup-item"><div class="lk-label">Owned Since</div><div class="lk-val">${d.ownerSince}</div></div>
+      <div class="lookup-item"><div class="lk-label">Purchase Price</div><div class="lk-val">${d.purchasePrice}</div></div>
+      <div class="lookup-item"><div class="lk-label">Estimated Equity</div><div class="lk-val" style="color:var(--green)">${d.estimatedEquity}</div></div>
+      <div class="lookup-item"><div class="lk-label">Mortgage Balance</div><div class="lk-val">${d.mortgageBalance}</div></div>
+      <div class="lookup-item"><div class="lk-label">Lender</div><div class="lk-val">${d.lender}</div></div>
+      <div class="lookup-item"><div class="lk-label">Annual Taxes</div><div class="lk-val">${d.annualTaxes}</div></div>
+      <div class="lookup-item"><div class="lk-label">Price / SqFt</div><div class="lk-val">${d.pricePerSqft}</div></div>
+      <div class="lookup-item"><div class="lk-label">Est. Rent</div><div class="lk-val">${d.estimatedRent}</div></div>
+    </div>
 
-      loading.classList.remove('show');
-      content.style.display = 'block';
+    <div class="ci-box" style="margin-top:0">
+      <div class="ci-title">📋 Owner Contact Info</div>
+      ${d.phone?`<div class="ci-row">📞 <span>${d.phone}</span></div>`:''}
+      ${d.email?`<div class="ci-row">✉️ <a href="mailto:${d.email}">${d.email}</a></div>`:''}
+      ${d.mailingAddress?`<div class="ci-row">📬 <span>${d.mailingAddress}</span></div>`:''}
+    </div>
 
-      // Switch to first tab
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.querySelector('.tab-btn').classList.add('active');
-      document.getElementById('tab-sms').classList.add('active');
+    <div class="lookup-section">
+      <h4>📈 Investment Analysis</h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
+        ${[['Cap Rate',d.capRate],['Cash on Cash',d.cashOnCash],['Gross Yield',d.grossYield],['Walk Score',d.walkScore],['Crime Index',d.crimeIndex],['Neighborhood',d.neighborhoodGrade],['Avg Days on Mkt',d.avgDaysOnMarket],['Best Strategy',d.bestStrategy]].map(([l,v])=>`<div class="lookup-item"><div class="lk-label">${l}</div><div class="lk-val" style="font-size:13px">${v||'—'}</div></div>`).join('')}
+      </div>
+    </div>
 
-    } catch (e) {
-      loading.innerHTML = '<div style="color:var(--red)">⚠ Failed to generate messages. Please try again.</div>';
+    <div class="lookup-section">
+      <h4>🏘️ Comparable Sales</h4>
+      <div style="overflow-x:auto"><table style="width:100%">
+        <thead><tr><th>Address</th><th>Beds</th><th>Baths</th><th>SqFt</th><th>Sold Date</th><th>Sold Price</th></tr></thead>
+        <tbody>${(d.comps||[]).map(c=>`<tr><td>${c.address}</td><td>${c.beds}</td><td>${c.baths}</td><td>${c.sqft?.toLocaleString()}</td><td>${c.soldDate}</td><td style="color:var(--amber);font-weight:600">${c.soldPrice}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="lookup-section">
+      <h4>🏫 Nearby Schools</h4>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${(d.nearbySchools||[]).map(s=>`<div style="background:var(--dark);border:1px solid var(--border);padding:10px 14px"><div style="font-size:12px;font-weight:600">${s.name}</div><div style="font-size:11px;color:var(--sub)">${s.distance} · Rating: <span style="color:var(--amber)">${s.rating}</span></div></div>`).join('')}</div>
+    </div>
+
+    <div class="lookup-section" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <h4>✅ Green Flags</h4>
+        ${(d.greenFlags||[]).map(f=>`<div style="font-size:12px;color:var(--green);padding:3px 0;padding-left:14px;position:relative"><span style="position:absolute;left:0">→</span>${f}</div>`).join('')}
+      </div>
+      <div>
+        <h4 style="color:var(--red)">⚠️ Red Flags</h4>
+        ${(d.redFlags||[]).map(f=>`<div style="font-size:12px;color:var(--red);padding:3px 0;padding-left:14px;position:relative"><span style="position:absolute;left:0">→</span>${f}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="lookup-section">
+      <h4>💡 Investor Notes</h4>
+      <div style="background:var(--dark);border:1px solid var(--border);padding:14px;font-size:13px;color:var(--sub);line-height:1.7">${d.investorNotes}</div>
+    </div>
+
+    ${(d.distressIndicators||[]).filter(x=>x!=='none').length?`
+    <div class="lookup-section">
+      <h4 style="color:var(--red)">🚨 Distress Indicators</h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${d.distressIndicators.filter(x=>x!=='none').map(x=>`<span class="sig hot">${x}</span>`).join('')}</div>
+    </div>`:''}
+  </div>`;
+}
+
+
+// ---- CIRCLE DRAW TOOL ----
+
+function startDrawCircle(){
+  drawMode = !drawMode;
+  const btn = document.getElementById('btn-draw-circle');
+  if(drawMode){
+    btn.classList.add('active');
+    btn.textContent = '🖱️ CLICK MAP TO PLACE CIRCLE';
+    leafMap.getContainer().style.cursor = 'crosshair';
+    document.getElementById('circle-info').classList.add('show');
+    document.getElementById('circle-info').textContent = 'Click anywhere on the map to place your target zone circle.';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '⭕ DRAW CIRCLE → FIND LEADS';
+    leafMap.getContainer().style.cursor = '';
+  }
+}
+
+function changeRadius(delta){
+  if(!drawnCircle) return;
+  circleRadius = Math.max(0.5, Math.min(50, circleRadius + delta));
+  drawnCircle.setRadius(circleRadius * 1000);
+  updateCircleInfo();
+}
+
+function clearCircle(){
+  if(drawnCircle){ leafMap.removeLayer(drawnCircle); drawnCircle = null; }
+  circleCenter = null;
+  document.getElementById('btn-gen-circle').style.display = 'none';
+  document.getElementById('btn-clear-circle').style.display = 'none';
+  document.getElementById('circle-info').classList.remove('show');
+  document.getElementById('btn-draw-circle').textContent = '⭕ DRAW CIRCLE → FIND LEADS';
+  document.getElementById('btn-draw-circle').classList.remove('active');
+  drawMode = false;
+  leafMap.getContainer().style.cursor = '';
+}
+
+function updateCircleInfo(){
+  const areaKm = (Math.PI * circleRadius * circleRadius).toFixed(1);
+  const areaMi = (areaKm / 2.59).toFixed(1);
+  document.getElementById('circle-info').textContent = 
+    `📍 Zone: ${circleRadius.toFixed(1)} km radius · ${areaMi} sq miles · Lat: ${circleCenter.lat.toFixed(4)}, Lng: ${circleCenter.lng.toFixed(4)} · Click ➕/➖ to resize · Click "GENERATE LEADS IN ZONE" to find leads`;
+}
+
+// Map click handler for circle placement
+function onMapClick(e){
+  if(!drawMode) return;
+  circleCenter = e.latlng;
+  if(drawnCircle) leafMap.removeLayer(drawnCircle);
+  drawnCircle = L.circle(circleCenter, {
+    radius: circleRadius * 1000,
+    color: '#E63946', fillColor: '#E63946', fillOpacity: 0.12,
+    weight: 2, dashArray: '6,4'
+  }).addTo(leafMap);
+  document.getElementById('btn-gen-circle').style.display = 'inline-block';
+  document.getElementById('btn-clear-circle').style.display = 'inline-block';
+  document.getElementById('btn-draw-circle').classList.remove('active');
+  document.getElementById('btn-draw-circle').textContent = '⭕ DRAW CIRCLE → FIND LEADS';
+  drawMode = false;
+  leafMap.getContainer().style.cursor = '';
+  updateCircleInfo();
+  document.getElementById('circle-info').classList.add('show');
+}
+
+async function genLeadsInCircle(){
+  if(!circleCenter){ alert('Draw a circle first!'); return; }
+
+  // Reverse geocode the center to get a city name using Nominatim
+  const btn = document.getElementById('btn-gen-circle');
+  btn.textContent = '⏳ FINDING AREA NAME...';
+  btn.disabled = true;
+
+  let cityName = '';
+  try{
+    const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${circleCenter.lat}&lon=${circleCenter.lng}&format=json`);
+    const geo = await resp.json();
+    const a = geo.address || {};
+    cityName = a.city || a.town || a.village || a.county || a.state || 'Unknown Area';
+    const state = a.state_code || a.state || '';
+    if(state && !cityName.includes(state)) cityName += ', ' + state;
+  } catch(e){
+    cityName = `Area near ${circleCenter.lat.toFixed(3)}, ${circleCenter.lng.toFixed(3)}`;
+  }
+
+  const count = parseInt(document.getElementById('inp-count').value) || 25;
+  btn.textContent = `⚡ GENERATING ${count} LEADS IN ${cityName.toUpperCase()}...`;
+
+  // Set city and generate leads
+  document.getElementById('inp-city').value = cityName;
+
+  // Generate leads directly
+  const signals = getSignals();
+  const contacts = getContacts();
+  const strategy = document.getElementById('inp-strategy').value;
+  const cMap={phone:'phone (e.g. (404) 555-7823)',email:'email (e.g. jsmith@gmail.com)',mailingAddress:'mailingAddress',llcInfo:'llcInfo',liensJudgments:'liensJudgments',mortgageInfo:'mortgageInfo',purchaseHistory:'purchaseHistory',neighborInfo:'neighborInfo'};
+  const cFields = contacts.map(c=>cMap[c]||c).join(', ');
+
+  try{
+    document.getElementById('circle-info').textContent = `⚡ Generating ${count} leads in ${cityName} (${circleRadius.toFixed(1)}km radius)...`;
+
+    const batchSize = 25, batches = Math.ceil(count/batchSize);
+    let newLeads = [];
+
+    for(let b=0; b<batches; b++){
+      const bc = Math.min(batchSize, count - newLeads.length);
+      const text = await callAI(`Generate ${bc} realistic distressed real estate seller leads for the area around: ${cityName}
+Circle center: Lat ${circleCenter.lat.toFixed(4)}, Lng ${circleCenter.lng.toFixed(4)}, Radius: ${circleRadius.toFixed(1)}km
+Strategy: ${strategy} | Signals: ${signals.join(', ')}
+
+Return ONLY valid JSON array. Each object:
+{"address":"street address","city":"${cityName}","neighborhood":"specific neighborhood near that lat/lng","propType":"Single Family","beds":3,"baths":2,"sqft":1500,"estValue":"$220,000","ownerName":"Full Name","ownerAge":54,"yearsOwned":10,"signals":["signal1"],"distressScore":82,"arv":"$255,000","estRepairs":"$20,000","urgencyLevel":"HIGH","summary":"specific situation","motivation":"why selling","lat":${circleCenter.lat.toFixed(4)},"lng":${circleCenter.lng.toFixed(4)},"contactInfo":{${cFields}}}
+Vary lat/lng within ${circleRadius.toFixed(1)}km of center. CRITICAL: valid JSON only, no apostrophes in strings.`, 4000);
+      const batch = parseJSON(text);
+      newLeads = [...newLeads, ...batch];
     }
-  }
 
-  function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
-  }
-  function handleOverlayClick(e) {
-    if (e.target === document.getElementById('modal-overlay')) closeModal();
-  }
+    // Add to all leads and plot on map
+    const startIdx = allLeads.length;
+    allLeads = [...allLeads, ...newLeads];
+    document.getElementById('stat-generated').textContent = allLeads.length;
+    document.getElementById('stat-hot').textContent = allLeads.filter(l=>l.distressScore>=80).length;
+    document.getElementById('stat-contacts').textContent = allLeads.filter(l=>l.contactInfo&&(l.contactInfo.phone||l.contactInfo.email)).length;
 
-  function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    const idx = ['sms','letter','cold'].indexOf(tab);
-    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-    document.getElementById('tab-' + tab).classList.add('active');
-  }
-
-  function copyMsg(type) {
-    const el = document.getElementById('msg-' + type);
-    navigator.clipboard.writeText(el.value).then(() => {
-      msgsSent++;
-      document.getElementById('stat-msgs').textContent = msgsSent;
+    // Plot the new leads using their actual lat/lng if available
+    newLeads.forEach((lead, i)=>{
+      const lat = lead.lat || (circleCenter.lat + (Math.random()-0.5)*(circleRadius*0.018));
+      const lng = lead.lng || (circleCenter.lng + (Math.random()-0.5)*(circleRadius*0.018));
+      const color = scoreToColor(lead.distressScore);
+      const marker = L.marker([lat, lng], {icon: makeIcon(color, lead.distressScore)}).addTo(leafMap);
+      const ci = lead.contactInfo || {};
+      marker.bindPopup(`
+        <div class="popup-addr">${lead.address}</div>
+        <div class="popup-sub">${lead.neighborhood || lead.city} · ${lead.propType}</div>
+        <div class="popup-score" style="color:${color}">${lead.distressScore}</div>
+        <div style="font-size:11px;margin:4px 0"><strong>${lead.ownerName}</strong> · ${lead.estValue}</div>
+        ${(lead.signals||[]).map(s=>`<span style="background:rgba(230,57,70,0.15);color:#E63946;font-size:8px;padding:1px 5px;margin:1px;display:inline-block">${s}</span>`).join('')}
+        ${ci.phone?`<div class="popup-ci">📞 <span>${ci.phone}</span></div>`:''}
+        <div style="font-size:10px;color:var(--sub);margin-top:4px;font-style:italic">${lead.summary}</div>
+        <button class="popup-btn" onclick="openOutreach(${startIdx+i});document.querySelectorAll('.nav-tab')[0].click()">✉ OUTREACH</button>
+      `);
+      mapMarkers.push(marker);
     });
+
+    document.getElementById('circle-info').textContent = `✅ ${newLeads.length} leads generated in ${cityName}! Pins now showing on map. Switch to LEADS tab to see full list.`;
+
+    // Update results section too
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('empty-state').classList.remove('show');
+    renderLeads(allLeads);
+
+  } catch(e){
+    document.getElementById('circle-info').textContent = '⚠ Error: ' + e.message;
   }
 
-  // Show empty state on load
-  document.getElementById('empty-state').classList.add('show');
+  btn.textContent = '⚡ GENERATE LEADS IN ZONE';
+  btn.disabled = false;
+}
+
+// Hook map click after map init
+const _origInitMap = initMap;
+function initMap(lat=33.749, lng=-84.388, zoom=11){
+  if(leafMap){ leafMap.setView([lat,lng],zoom); return; }
+  leafMap = L.map('map-container').setView([lat, lng], zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:19
+  }).addTo(leafMap);
+  leafMap.on('click', onMapClick);
+  mapInitialized = true;
+}
+
+
+// ── MAP helpers ──
+function mapSearchCity(){
+  const city = document.getElementById('map-city').value.trim();
+  if(!city) return;
+  const coords = getCityCoords(city);
+  if(!leafMap) initMap(coords[0], coords[1], 12);
+  else leafMap.setView(coords, 12);
+}
+
+async function mapGenLeads(){
+  const city = document.getElementById('map-city').value.trim();
+  if(!city){ alert('Enter a city first'); return; }
+  document.getElementById('inp-city').value = city;
+  showPage('leads');
+  document.querySelectorAll('.nav-tab')[0].classList.add('active');
+  await generateLeads();
+  setTimeout(()=>{
+    showPage('map');
+    document.querySelectorAll('.nav-tab')[5].classList.add('active');
+    renderMapLeads();
+  }, 500);
+}
+
+function mapFitLeads(){
+  if(!allLeads.length){ alert('Generate leads first!'); return; }
+  if(!leafMap) initMap();
+  renderMapLeads();
+}
+
+// ── KEYWORDS tab helper ──
+function switchTab(btn, tabId){
+  const parent = btn.closest('.search-panel') || document.getElementById('page-keywords');
+  parent.querySelectorAll('.kw-tab').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.kw-panel').forEach(p => p.style.display = 'none');
+  btn.classList.add('active');
+  const panel = document.getElementById(tabId);
+  if(panel) panel.style.display = 'block';
+}
+
+// ── KEYWORDS generator ──
+async function generateKeywords(){
+  const city = document.getElementById('kw-city')?.value?.trim() || '';
+  const situation = document.getElementById('kw-situation')?.value || 'Motivated Seller';
+  const btn = document.getElementById('btn-gen-kw');
+  if(!city){ alert('Enter a city first'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='GENERATING...'; }
+  try{
+    const text = await callAI(`Generate 40 SEO keywords for a cash home buyer targeting: ${city}, situation: ${situation}.
+Return ONLY valid JSON array of strings. Mix short-tail and long-tail. Include city name. Example format:
+["sell my house fast ${city}","cash home buyers ${city}","we buy houses ${city}"]`, 800);
+    const keywords = parseJSON(text);
+    const out = document.getElementById('kw-ai-output');
+    if(out){
+      out.innerHTML = keywords.map(k =>
+        `<div class="kw-tag" onclick="navigator.clipboard.writeText('${k.replace(/'/g,"\'")}');this.style.background='var(--green)';setTimeout(()=>this.style.background='',1500)">${k}</div>`
+      ).join('');
+    }
+  }catch(e){ alert('Error: '+e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='GENERATE KEYWORDS'; }
+}
+
+// ── DEAL CALC helper ──
+function getDealAdvice(){
+  const ctx = document.getElementById('deal-context')?.value?.trim() || '';
+  const arv = document.getElementById('inp-arv')?.value || '';
+  const repairs = document.getElementById('inp-repairs')?.value || '';
+  const price = document.getElementById('inp-price')?.value || '';
+  const strategy = document.getElementById('inp-deal-strategy')?.value || 'Fix & Flip';
+  runDealAdvice(ctx, arv, repairs, price, strategy);
+}
+
+async function runDealAdvice(ctx, arv, repairs, price, strategy){
+  const out = document.getElementById('deal-advice');
+  if(!out) return;
+  out.innerHTML = '<div class="modal-loading" style="display:flex"><div class="big-spin"></div>Analyzing deal...</div>';
+  try{
+    const text = await callAI(`Real estate deal analyst. Analyze this ${strategy} deal:
+ARV: $${arv} | Repairs: $${repairs} | Purchase Price: $${price}
+Context: ${ctx||'No additional context'}
+Give verdict (strong/marginal/avoid), specific risks, negotiation strategy, exit recommendations, creative structures if needed.
+Be direct and specific. 3-4 paragraphs max.`, 800);
+    out.innerHTML = `<div style="background:var(--panel);border:1px solid var(--border);padding:16px;margin-top:12px;font-size:13px;line-height:1.7;color:var(--sub)">${text.replace(/\n/g,'<br>')}</div>`;
+  }catch(e){
+    out.innerHTML = '<div style="color:var(--red)">Error: '+e.message+'</div>';
+  }
+}
+
+
+// ── Quick Skip from lead card ──
+function quickSkip(idx){
+  const lead = allLeads[idx];
+  if(!lead) return;
+  document.getElementById('skip-address').value = lead.address + ', ' + lead.city;
+  showPage('skip');
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab')[1].classList.add('active');
+  setTimeout(()=>runSkipTrace(), 300);
+}
+
+
+// ── KEYWORDS render ──
+const KW_CATS = [('High-Intent Buyer', ['sell my house fast', 'cash home buyers near me', 'we buy houses', 'sell house as is', 'sell house for cash', 'cash offer for my house', 'fast home sale', 'sell house without realtor', 'sell my home quickly', 'home cash buyers']), ('Foreclosure', ['stop foreclosure', 'sell house before foreclosure', 'foreclosure help', 'avoid foreclosure', 'pre-foreclosure sale', 'sell foreclosure home', 'house in foreclosure', 'foreclosure cash buyer']), ('Probate & Inherited', ['sell inherited house', 'probate home sale', 'sell estate property', 'inherited property buyers', 'sell deceased parents home', 'executor sell house fast', 'inherited house cash offer']), ('Divorce & Life Events', ['sell house during divorce', 'divorce home sale', 'sell house fast divorce', 'job relocation sell house', 'need to sell house fast', 'life change sell home', 'quick home sale']), ('Property Condition', ['sell house as is', 'sell damaged house', 'sell fire damaged home', 'sell house needs repairs', 'ugly house buyers', 'sell house without repairs', 'sell condemned property', 'sell fixer upper fast']), ('Landlord & Tenant', ['sell rental property fast', 'tired landlord sell property', 'sell tenant occupied house', 'landlord sell house fast', 'problem tenant property sale', 'sell investment property quick']), ('Long-Tail City', ['sell my house fast [city]', 'cash home buyers [city]', 'we buy houses [city]', '[city] house cash offer', 'sell house fast [city] TX', '[city] cash home buyers', 'quick home sale [city]']), ('Google Ads / PPC', ['"sell my house fast"', '"cash for houses"', '"we buy ugly houses"', '"sell house as is"', '"stop foreclosure now"', '"cash home buyers"', '"sell house fast"', '"buy my house cash"'])];
+
+function renderKeywords(){
+  const container = document.getElementById('kw-container');
+  if(!container || container.innerHTML.trim()) return; // already rendered
+  let html = '';
+  KW_CATS.forEach(([cat, kws]) => {
+    html += `<div class="search-panel" style="margin-bottom:16px">
+      <div class="section-label">${cat}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+        ${kws.map(k => `<div class="kw-tag" onclick="copyKw(this,'${k.replace(/'/g,"\\'")}')">${k}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function copyKw(el, text){
+  navigator.clipboard.writeText(text).then(()=>{
+    el.style.background='var(--green)'; el.style.color='#fff';
+    setTimeout(()=>{ el.style.background=''; el.style.color=''; }, 1500);
+  });
+}
+
+// ── MARKETING render ──
+const MKT_TYPES = [
+  {id:'postcard', icon:'📮', title:'Direct Mail Postcard', desc:'Yellow letter format that converts'},
+  {id:'bandit',   icon:'🪧', title:'Bandit Sign Copy',     desc:'3-line roadside signs that get calls'},
+  {id:'google',   icon:'🔍', title:'Google Ads Copy',      desc:'3 headlines + 2 descriptions'},
+  {id:'facebook', icon:'📱', title:'Facebook Ad Copy',     desc:'Hook, body, and CTA'},
+  {id:'seo',      icon:'🌐', title:'SEO Landing Page',     desc:'Full page copy with FAQs + meta'},
+  {id:'voicemail',icon:'📞', title:'Ringless Voicemail',   desc:'30-second drop script'},
+];
+
+function renderMarketingCards(){
+  const container = document.getElementById('mkt-cards-container');
+  if(!container || container.innerHTML.trim()) return;
+  container.innerHTML = MKT_TYPES.map(t => `
+    <div class="mkt-card">
+      <div style="font-size:24px;margin-bottom:8px">${t.icon}</div>
+      <h3 style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:6px">${t.title}</h3>
+      <p style="font-size:12px;color:var(--sub);margin-bottom:14px">${t.desc}</p>
+      <button class="mkt-gen-btn" onclick="generateMktContent('${t.id}','${t.title}')">GENERATE →</button>
+      <div id="mkt-out-${t.id}" style="display:none;margin-top:12px">
+        <pre id="mkt-pre-${t.id}" style="white-space:pre-wrap;font-size:11px;color:var(--sub);font-family:'IBM Plex Mono',monospace;line-height:1.6;max-height:200px;overflow-y:auto"></pre>
+        <button class="btn-copy" style="margin-top:8px;width:100%" onclick="copyMktContent('${t.id}')">COPY</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function generateMktContent(typeId, typeName){
+  const name = document.getElementById('mkt-name')?.value || 'Mike Johnson';
+  const city = document.getElementById('mkt-city')?.value || 'your city';
+  const phone = document.getElementById('mkt-phone')?.value || '(555) 555-5555';
+  const situation = document.getElementById('mkt-situation')?.value || 'Any Motivated Seller';
+  const strategy = document.getElementById('mkt-strategy')?.value || 'Cash Offer';
+  
+  const btn = event.target;
+  btn.textContent = 'GENERATING...'; btn.disabled = true;
+  const outDiv = document.getElementById('mkt-out-'+typeId);
+  const pre = document.getElementById('mkt-pre-'+typeId);
+  
+  try{
+    const text = await callAI(`Generate ${typeName} marketing content for a cash home buyer.
+Name/Company: ${name} | City: ${city} | Phone: ${phone}
+Target: ${situation} | Strategy: ${strategy}
+Make it compelling, specific, empathy-first. Return plain text only, no JSON.`, 600);
+    pre.textContent = text;
+    outDiv.style.display = 'block';
+  }catch(e){
+    pre.textContent = 'Error: '+e.message;
+    outDiv.style.display = 'block';
+  }
+  btn.textContent = 'REGENERATE →'; btn.disabled = false;
+}
+
+function copyMktContent(typeId){
+  const text = document.getElementById('mkt-pre-'+typeId)?.textContent || '';
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById('mkt-out-'+typeId).querySelector('.btn-copy');
+    btn.textContent='COPIED!'; setTimeout(()=>btn.textContent='COPY',2000);
+  });
+}
+
+
+// ── CITY AUTOCOMPLETE ──
+const US_CITIES = [
+  'Atlanta, GA','Austin, TX','Baltimore, MD','Birmingham, AL','Boston, MA',
+  'Buffalo, NY','Charlotte, NC','Chicago, IL','Cincinnati, OH','Cleveland, OH',
+  'Columbus, OH','Dallas, TX','Denver, CO','Detroit, MI','El Paso, TX',
+  'Fort Worth, TX','Fresno, CA','Houston, TX','Indianapolis, IN','Jacksonville, FL',
+  'Kansas City, MO','Las Vegas, NV','Long Beach, CA','Los Angeles, CA','Louisville, KY',
+  'Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN',
+  'Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Oakland, CA',
+  'Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ',
+  'Pittsburgh, PA','Portland, OR','Raleigh, NC','Richmond, VA','Riverside, CA',
+  'Sacramento, CA','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA',
+  'Santa Ana, CA','Seattle, WA','Spokane, WA','St. Louis, MO','St. Petersburg, FL',
+  'Stockton, CA','Tampa, FL','Tucson, AZ','Tulsa, OK','Virginia Beach, VA',
+  'Washington, DC','Wichita, KS','Winston-Salem, NC',
+  'Bay Area, CA','South Florida, FL','North Dallas, TX','East Bay, CA',
+  'Fort Lauderdale, FL','Bakersfield, CA','Anaheim, CA','Irvine, CA',
+  'Chula Vista, CA','Fremont, CA','Hayward, CA','Modesto, CA','Fontana, CA',
+  'Moreno Valley, CA','Glendale, CA','Huntington Beach, CA','Santa Clarita, CA',
+  'Garden Grove, CA','Oceanside, CA','Pomona, CA','Escondido, CA',
+  'Scottsdale, AZ','Chandler, AZ','Gilbert, AZ','Tempe, AZ','Peoria, AZ',
+  'Shreveport, LA','Baton Rouge, LA','Laredo, TX','Lubbock, TX','Garland, TX',
+  'Irving, TX','Plano, TX','Frisco, TX','McKinney, TX','Arlington, TX',
+  'Durham, NC','Greensboro, NC','Fayetteville, NC','Knoxville, TN','Chattanooga, TN',
+  'Little Rock, AR','Jackson, MS','Mobile, AL','Montgomery, AL','Huntsville, AL',
+  'Columbia, SC','Charleston, SC','Savannah, GA','Augusta, GA','Columbus, GA',
+  'Lexington, KY','Louisville, KY','Akron, OH','Toledo, OH','Dayton, OH',
+  'Grand Rapids, MI','Lansing, MI','Ann Arbor, MI','Flint, MI',
+  'Madison, WI','Green Bay, WI','Des Moines, IA','Cedar Rapids, IA',
+  'Minneapolis, MN','St. Paul, MN','Sioux Falls, SD','Fargo, ND',
+  'Salt Lake City, UT','Provo, UT','Boise, ID','Spokane, WA','Tacoma, WA',
+  'Albuquerque, NM','Santa Fe, NM','El Paso, TX','Corpus Christi, TX',
+  'Newark, NJ','Jersey City, NJ','Trenton, NJ',
+  'Providence, RI','Hartford, CT','Bridgeport, CT','New Haven, CT',
+  'Albany, NY','Syracuse, NY','Rochester, NY','Yonkers, NY',
+  'Anchorage, AK','Honolulu, HI'
+];
+
+let cityACIndex = -1;
+
+function cityAC(input, ddId){
+  const val = input.value.trim().toLowerCase();
+  const dd = document.getElementById(ddId);
+  if(!dd) return;
+  cityACIndex = -1;
+  if(val.length < 2){ dd.innerHTML=''; dd.style.display='none'; return; }
+  const matches = US_CITIES.filter(c => c.toLowerCase().includes(val)).slice(0, 8);
+  if(!matches.length){ dd.innerHTML=''; dd.style.display='none'; return; }
+  dd.innerHTML = matches.map((c,i) =>
+    '<div class="city-opt" onmousedown="selectCity(\''+c+'\',\''+input.id+'\',\''+ddId+'\')">'+
+    c.replace(new RegExp('('+val+')', 'gi'), '<strong>$1</strong>')+
+    '</div>'
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function selectCity(city, inputId, ddId){
+  const inp = document.getElementById(inputId);
+  if(inp) inp.value = city;
+  closeCityDD(ddId);
+}
+
+function closeCityDD(ddId){
+  const dd = document.getElementById(ddId);
+  if(dd){ dd.innerHTML=''; dd.style.display='none'; }
+  cityACIndex = -1;
+}
+
+function cityNav(event, ddId){
+  const dd = document.getElementById(ddId);
+  if(!dd || dd.style.display==='none') return;
+  const opts = dd.querySelectorAll('.city-opt');
+  if(!opts.length) return;
+  if(event.key==='ArrowDown'){ event.preventDefault(); cityACIndex=Math.min(cityACIndex+1,opts.length-1); }
+  else if(event.key==='ArrowUp'){ event.preventDefault(); cityACIndex=Math.max(cityACIndex-1,0); }
+  else if(event.key==='Enter' && cityACIndex>=0){ event.preventDefault(); opts[cityACIndex].dispatchEvent(new Event('mousedown')); return; }
+  else if(event.key==='Escape'){ closeCityDD(ddId); return; }
+  opts.forEach((o,i) => o.classList.toggle('active', i===cityACIndex));
+}
+
+
+// ══════════════════════════════════════════
+// COMPREHENSIVE FIX - ALL MISSING FUNCTIONS
+// ══════════════════════════════════════════
+
+// ── City coords for map ──
+function getCityCoords(city){
+  const map = {
+    'atlanta':[ 33.749,-84.388],'austin':[30.267,-97.743],'chicago':[41.878,-87.630],
+    'dallas':[32.776,-96.797],'denver':[39.739,-104.984],'detroit':[42.331,-83.048],
+    'houston':[29.760,-95.370],'los angeles':[34.052,-118.244],'miami':[25.761,-80.192],
+    'minneapolis':[44.977,-93.265],'nashville':[36.162,-86.781],'new york':[40.713,-74.006],
+    'orlando':[28.538,-81.379],'philadelphia':[39.952,-75.165],'phoenix':[33.448,-112.074],
+    'portland':[45.523,-122.676],'san antonio':[29.425,-98.494],'san diego':[32.715,-117.157],
+    'san francisco':[37.774,-122.419],'san jose':[37.338,-121.886],'seattle':[47.606,-122.332],
+    'tampa':[27.947,-82.459],'las vegas':[36.170,-115.140],'boston':[42.360,-71.058],
+    'charlotte':[35.227,-80.843],'columbus':[39.961,-82.999],'indianapolis':[39.768,-86.158],
+    'jacksonville':[30.332,-81.656],'memphis':[35.149,-90.048],'baltimore':[39.290,-76.612],
+    'oklahoma city':[35.467,-97.517],'louisville':[38.253,-85.759],'portland':[45.523,-122.676],
+    'sacramento':[38.581,-121.494],'fresno':[36.737,-119.787],'tucson':[32.222,-110.925],
+    'hayward':[37.668,-122.081],'oakland':[37.804,-122.271],'long beach':[33.770,-118.193],
+  };
+  const key = city.toLowerCase().split(',')[0].trim();
+  for(const [k,v] of Object.entries(map)){ if(key.includes(k)||k.includes(key)) return v; }
+  return [39.5,-98.35]; // US center
+}
+
+// ── MAP: render leads as pins ──
+function renderMapLeads(){
+  if(!leafMap) initMap();
+  // Clear existing markers
+  mapMarkers.forEach(m=>leafMap.removeLayer(m));
+  mapMarkers = [];
+  if(!allLeads.length){ return; }
+  const bounds = [];
+  allLeads.forEach((lead,idx)=>{
+    if(!lead.lat||!lead.lng) return;
+    const color = lead.distressScore>=80?'#E63946':lead.distressScore>=60?'#F4A261':'#2A9D8F';
+    const icon = L.divIcon({
+      className:'',
+      html:'<div style="background:'+color+';width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>',
+      iconSize:[14,14], iconAnchor:[7,7]
+    });
+    const marker = L.marker([lead.lat,lead.lng],{icon}).addTo(leafMap);
+    marker.bindPopup(
+      '<div style="font-family:IBM Plex Sans,sans-serif;min-width:200px">'+
+      '<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+lead.address+'</div>'+
+      '<div style="font-size:11px;color:#666;margin-bottom:6px">'+lead.ownerName+'</div>'+
+      '<div style="font-size:11px;margin-bottom:4px">Score: <strong style="color:'+color+'">'+lead.distressScore+'</strong> | '+lead.propType+'</div>'+
+      '<div style="font-size:11px;margin-bottom:4px">Value: '+lead.estValue+' | Equity: '+(lead.equity||'N/A')+'</div>'+
+      '<div style="margin-top:8px;display:flex;gap:6px">'+
+      '<button onclick="openOutreach('+idx+')" style="background:#E63946;color:#fff;border:none;padding:4px 8px;font-size:10px;cursor:pointer;font-weight:700">OUTREACH</button>'+
+      '<button onclick="quickSkip('+idx+')" style="background:#457B9D;color:#fff;border:none;padding:4px 8px;font-size:10px;cursor:pointer;font-weight:700">SKIP</button>'+
+      '</div></div>'
+    );
+    mapMarkers.push(marker);
+    bounds.push([lead.lat,lead.lng]);
+  });
+  if(bounds.length) leafMap.fitBounds(bounds,{padding:[30,30]});
+}
+
+// ── DEAL CALCULATOR ──
+function calcDeal(){
+  const arv = parseFloat(document.getElementById('calc-arv')?.value)||0;
+  const repairs = parseFloat(document.getElementById('calc-repairs')?.value)||0;
+  const price = parseFloat(document.getElementById('calc-price')?.value)||0;
+  const closing = (parseFloat(document.getElementById('calc-closing')?.value)||2)/100;
+  const holding = parseFloat(document.getElementById('calc-holding')?.value)||0;
+  const months = parseFloat(document.getElementById('calc-months')?.value)||6;
+  const commission = (parseFloat(document.getElementById('calc-commission')?.value)||6)/100;
+  const strategy = document.getElementById('calc-strategy')?.value||'flip';
+  const out = document.getElementById('calc-results');
+  if(!out||!arv) return;
+
+  const totalCosts = price + repairs + (price*closing) + (holding*months) + (arv*commission);
+  const profit = arv - totalCosts;
+  const roi = price>0 ? ((profit/price)*100).toFixed(1) : 0;
+  const mao70 = arv*0.70 - repairs;
+  const mao65 = arv*0.65 - repairs;
+  const verdict = profit>30000?'STRONG DEAL':'SUBMIT OFFER';
+  const verdictColor = profit>30000?'#2A9D8F':profit>0?'#F4A261':'#E63946';
+
+  // Monthly rent estimate for hold
+  const monthlyRent = (arv * 0.008);
+  const annualRent = monthlyRent * 12;
+  const capRate = ((annualRent - holding*12) / price * 100).toFixed(1);
+  const cashFlow = monthlyRent - holding - (price*0.005);
+
+  const fmt = n => '$'+Math.round(n).toLocaleString();
+
+  if(strategy==='flip'){
+    out.innerHTML = `
+      <div style="text-align:center;padding:12px;background:${verdictColor}22;border:1px solid ${verdictColor};margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${verdictColor};letter-spacing:2px">${verdict}</div>
+        <div style="font-size:13px;color:${verdictColor};font-weight:700">Estimated Profit: ${fmt(profit)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">ARV</div><div style="font-weight:700;font-size:15px">${fmt(arv)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">TOTAL COSTS</div><div style="font-weight:700;font-size:15px">${fmt(totalCosts)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">NET PROFIT</div><div style="font-weight:700;font-size:15px;color:${profit>0?'#2A9D8F':'#E63946'}">${fmt(profit)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">ROI</div><div style="font-weight:700;font-size:15px">${roi}%</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">MAO (70% Rule)</div><div style="font-weight:700">${fmt(mao70)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">MAO (65% Rule)</div><div style="font-weight:700">${fmt(mao65)}</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--sub)">Repairs: ${fmt(repairs)} | Holding: ${fmt(holding*months)} | Closing: ${fmt(price*closing)} | Commission: ${fmt(arv*commission)}</div>
+    `;
+  } else if(strategy==='wholesale'){
+    const assignFee = Math.min(profit*0.4, 25000);
+    const endBuyerMAO = arv*0.70 - repairs;
+    out.innerHTML = `
+      <div style="text-align:center;padding:12px;background:#2A9D8F22;border:1px solid #2A9D8F;margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#2A9D8F;letter-spacing:2px">WHOLESALE ANALYSIS</div>
+        <div style="font-size:13px;color:#2A9D8F;font-weight:700">Est. Assignment Fee: ${fmt(assignFee)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">END BUYER MAO</div><div style="font-weight:700;font-size:15px">${fmt(endBuyerMAO)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">YOUR MAX OFFER</div><div style="font-weight:700;font-size:15px">${fmt(endBuyerMAO - assignFee)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">ASSIGNMENT FEE</div><div style="font-weight:700;font-size:15px;color:#2A9D8F">${fmt(assignFee)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">SPREAD</div><div style="font-weight:700;font-size:15px">${fmt(endBuyerMAO-price)}</div></div>
+      </div>
+    `;
+  } else {
+    out.innerHTML = `
+      <div style="text-align:center;padding:12px;background:#457B9D22;border:1px solid #457B9D;margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#457B9D;letter-spacing:2px">BUY & HOLD ANALYSIS</div>
+        <div style="font-size:13px;color:#457B9D;font-weight:700">Monthly Cash Flow: ${fmt(cashFlow)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">EST. MONTHLY RENT</div><div style="font-weight:700;font-size:15px">${fmt(monthlyRent)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">CAP RATE</div><div style="font-weight:700;font-size:15px">${capRate}%</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">MONTHLY CASH FLOW</div><div style="font-weight:700;font-size:15px;color:${cashFlow>0?'#2A9D8F':'#E63946'}">${fmt(cashFlow)}</div></div>
+        <div style="background:var(--dark);padding:10px;border:1px solid var(--border)"><div style="color:var(--muted);font-size:10px">ANNUAL RENT</div><div style="font-weight:700;font-size:15px">${fmt(annualRent)}</div></div>
+      </div>
+    `;
+  }
+}
+
+// ── OUTREACH MODAL: fix switchTab and copyMsg ──
+function switchTab(tabName){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const btn = [...document.querySelectorAll('.tab-btn')].find(b=>b.onclick&&b.onclick.toString().includes("'"+tabName+"'"));
+  if(btn) btn.classList.add('active');
+  const pane = document.getElementById('tab-'+tabName);
+  if(pane) pane.classList.add('active');
+}
+
+function copyMsg(channel){
+  const area = document.getElementById('msg-'+channel);
+  if(!area) return;
+  navigator.clipboard.writeText(area.value||area.textContent).then(()=>{
+    const btn = area.closest('.tab-pane')?.querySelector('.btn-copy');
+    if(btn){ btn.textContent='COPIED!'; setTimeout(()=>btn.textContent='COPY '+channel.toUpperCase(),2000); }
+    msgsCopied++; 
+    const el=document.getElementById('stat-msgs'); if(el) el.textContent=msgsCopied;
+  });
+}
+
+// ── OUTREACH: generate and fill modal ──
+async function generateOutreach(lead){
+  const loading = document.getElementById('modal-loading');
+  const modalContent = document.getElementById('modal-content');
+  try {
+    const text = await callAI('Generate 5 real estate outreach messages for this distressed property seller. Owner: '+lead.ownerName+' Address: '+lead.address+' City: '+lead.city+' Distress signals: '+(lead.signals||[]).join(', ')+' Score: '+lead.distressScore+' Situation: '+(lead.summary||'')+' Motivation: '+(lead.motivation||'')+'. Return ONLY valid JSON with these exact keys: sms (under 160 chars, warm and personal), directMail (3 paragraph yellow letter), coldCall (full phone script with opener, discovery questions, 2 objection handlers, close), email (object with subject and body), voicemail (30 second script). No newlines inside string values.', 1500);
+    const data = parseJSON(text);
+    loading.style.display='none';
+    modalContent.style.display='block';
+    const emailText = (data.email&&data.email.subject?'SUBJECT: '+data.email.subject+'\n\n':'')+((data.email&&data.email.body)||data.email||'');
+    const ta = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
+    ta('msg-sms', data.sms||'');
+    ta('msg-letter', data.directMail||'');
+    ta('msg-cold', data.coldCall||'');
+    ta('msg-email', emailText);
+    ta('msg-voicemail', data.voicemail||'');
+    switchTab('sms');
+  } catch(e) {
+    loading.innerHTML = '&#9888; Error generating outreach: '+e.message;
+  }
+}
+
+// ── DEAL CALC: load from lead if coming from lead card ──
+function loadLeadIntoDealCalc(leadIdx){
+  const lead = allLeads[leadIdx];
+  if(!lead) return;
+  const arvNum = parseInt((lead.arv||'').replace(/[^0-9]/g,''))||0;
+  const repNum = parseInt((lead.estRepairs||'').replace(/[^0-9]/g,''))||0;
+  const valNum = parseInt((lead.estValue||'').replace(/[^0-9]/g,''))||0;
+  if(arvNum) document.getElementById('calc-arv').value = arvNum;
+  if(repNum) document.getElementById('calc-repairs').value = repNum;
+  if(valNum && !arvNum) document.getElementById('calc-arv').value = Math.round(valNum*1.1);
+  showPage('analyzer');
+  document.querySelectorAll('.nav-tab')[4].classList.add('active');
+  setTimeout(calcDeal, 100);
+}
+
+
+// ── PR CONNECTION TEST ──
+async function testPRConnection(){
+  const key = getPRKey();
+  const statusEl = document.getElementById('pr-status');
+  statusEl.style.color='var(--muted)';
+  statusEl.textContent='Testing...';
+  try {
+    const resp = await fetch(PROXY_BASE+'/api/propertyradar/test', {
+      headers:{'x-pr-token':key}
+    });
+    const data = await resp.json();
+    if(data.status==='connected'){
+      statusEl.style.color='var(--green)';
+      statusEl.textContent='✅ CONNECTED — '+data.resultCount+' results. Sample: '+(data.sample?.Address||'OK');
+      console.log('PR test sample:', data.sample);
+    } else {
+      statusEl.style.color='var(--red)';
+      statusEl.textContent='❌ ERROR: '+data.error;
+    }
+  } catch(e) {
+    statusEl.style.color='var(--red)';
+    statusEl.textContent='❌ '+e.message;
+  }
+}
+
+// ── PR DATA MAPPER: normalize any PR record into our lead format ──
+function mapPRToLead(p, idx) {
+  const ownerFirst = (p.OwnerFirstName||'').trim();
+  const ownerLast  = (p.OwnerLastName||'').trim();
+  const ownerName  = [ownerFirst, ownerLast].filter(Boolean).join(' ') || p.Owner || 'Unknown Owner';
+
+  const flags = [];
+  if(p.inForeclosure==='Yes')          flags.push('Pre-Foreclosure');
+  if(p.isSiteVacant==='Yes')           flags.push('Vacant');
+  if(p.isMailVacant==='Yes')           flags.push('Mail Vacant');
+  if(p.isSameMailingOrExempt==='No')   flags.push('Absentee Owner');
+  if(p.DefaultAmount>0)                flags.push('In Default $'+Math.round(p.DefaultAmount).toLocaleString());
+  if(p.isListedForSale==='Yes')        flags.push('Listed For Sale');
+  if((p.EquityPercent||0)>=50)         flags.push('High Equity '+p.EquityPercent+'%');
+
+  let ds = 10;
+  if(p.inForeclosure==='Yes')        ds += 35;
+  if(p.isSiteVacant==='Yes')         ds += 20;
+  if((p.DefaultAmount||0)>0)         ds += 20;
+  if(p.isSameMailingOrExempt==='No') ds += 10;
+  if((p.EquityPercent||0)>=40)       ds += 5;
+  ds = Math.min(ds, 99);
+
+  const fmt = n => n ? '$'+Math.round(n).toLocaleString() : 'N/A';
+
+  return {
+    id: p.RadarID || ('pr_'+idx),
+    address: p.Address || '',
+    city: [p.City, p.State].filter(Boolean).join(', '),
+    zip: p.ZipFive || '',
+    propType: p.PType || 'Single Family',
+    beds: p.Beds || 3,
+    baths: p.Baths || 2,
+    sqft: p.SqFt || 0,
+    yearBuilt: p.YearBuilt || 0,
+    lotSize: p.LotSize || '',
+    pool: p.Pool || 'No',
+    stories: p.Stories || 1,
+    units: p.Units || 1,
+    // Financials
+    estValue: fmt(p.AVM),
+    assessedValue: fmt(p.AssessedValue),
+    annualTaxes: fmt(p.AnnualTaxes),
+    equity: fmt(p.AvailableEquity),
+    equityPct: (p.EquityPercent||0)+'%',
+    loanBalance: fmt(p.TotalLoanBalance),
+    lender: p.FirstLenderOriginal || 'N/A',
+    firstLoanAmt: fmt(p.FirstAmount),
+    firstLoanDate: p.FirstDate || 'N/A',
+    arv: fmt(p.AVM ? p.AVM*1.1 : 0),
+    estRepairs: fmt(p.AVM ? Math.round(p.AVM*0.08/1000)*1000 : 0),
+    // Owner
+    ownerName,
+    ownerSpouse: p.OwnerSpouseFirstName || '',
+    phone: p.OwnerPhone || p.PrimaryPhone1 || 'Unlock in PropertyRadar',
+    email: p.OwnerEmail || p.PrimaryEmail1 || 'Unlock in PropertyRadar',
+    mailingAddress: [p.OwnerAddress, p.OwnerCity, p.OwnerState, p.OwnerZipFive].filter(Boolean).join(', ') || 'Same as property',
+    // Sale history
+    lastSaleDate: p.LastTransferRecDate || 'N/A',
+    lastSalePrice: fmt(p.LastTransferValue),
+    lastSaleSeller: p.LastTransferSeller || 'N/A',
+    yearsOwned: p.LastTransferRecDate ? new Date().getFullYear() - parseInt(p.LastTransferRecDate.substring(0,4)) : 0,
+    // Distress
+    signals: flags,
+    distressScore: ds,
+    urgencyLevel: ds>=80?'HIGH':ds>=60?'MEDIUM':'LOW',
+    inForeclosure: p.inForeclosure==='Yes',
+    foreclosureStage: p.ForeclosureStage || '',
+    defaultAmount: fmt(p.DefaultAmount),
+    isVacant: p.isSiteVacant==='Yes',
+    isAbsentee: p.isSameMailingOrExempt==='No',
+    isListed: p.isListedForSale==='Yes',
+    listingPrice: fmt(p.ListingPrice),
+    // Map
+    lat: p.Latitude ? parseFloat(p.Latitude) : null,
+    lng: p.Longitude ? parseFloat(p.Longitude) : null,
+    // Meta
+    radarId: p.RadarID,
+    propertyURL: p.PropertyURL || '',
+    photoURL: p.PhotoURL1 || '',
+    isRealData: true,
+    summary: flags.join('. '),
+    motivation: p.inForeclosure==='Yes'?'Stop foreclosure':
+                (p.DefaultAmount>0)?'Behind on payments':
+                (p.isSameMailingOrExempt==='No')?'Tired landlord/absentee':'Motivated seller',
+    contactInfo: {
+      phone: p.OwnerPhone || p.PrimaryPhone1 || '',
+      email: p.OwnerEmail || p.PrimaryEmail1 || '',
+      mailing: [p.OwnerAddress, p.OwnerCity, p.OwnerState].filter(Boolean).join(', ')
+    }
+  };
+}
+
+
+// ── EXPORT / SORT / VIEW (stubs restored) ──
+function setView(v){
+  currentView=v;
+  document.getElementById('card-view').style.display=v==='card'?'block':'none';
+  document.getElementById('table-view').style.display=v==='table'?'block':'none';
+  document.getElementById('vcb').classList.toggle('active',v==='card');
+  document.getElementById('vtb').classList.toggle('active',v==='table');
+  renderLeads();
+}
+
+function sortLeads(field){
+  sortDir[field] = sortDir[field]==='asc'?'desc':'asc';
+  filteredLeads.sort((a,b)=>{
+    const va=parseFloat(String(a[field]).replace(/[^0-9.-]/g,''))||0;
+    const vb=parseFloat(String(b[field]).replace(/[^0-9.-]/g,''))||0;
+    return sortDir[field]==='asc'?va-vb:vb-va;
+  });
+  renderLeads();
+}
+
+function exportCSV(){
+  const headers=['Address','Owner','Type','Value','ARV','Equity','Phone','Email','Score','Signals'];
+  const lines=[headers.join(',')];
+  filteredLeads.forEach(function(l){
+    const row=[l.address,l.ownerName,l.propType,l.estValue,l.arv,l.equity,l.phone,l.email,l.distressScore,(l.signals||[]).join(';')];
+    lines.push(row.map(function(c){ return String(c||'').replace(/,/g,' '); }).join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads.csv';a.click();
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){ alert('Excel library not loaded'); return; }
+  const ws=XLSX.utils.json_to_sheet(filteredLeads.map(l=>({Address:l.address,Owner:l.ownerName,Type:l.propType,Value:l.estValue,ARV:l.arv,Repairs:l.estRepairs,Equity:l.equity,LoanBalance:l.loanBalance,Lender:l.lender,Phone:l.phone,Email:l.email,Mailing:l.mailingAddress,Score:l.distressScore,Signals:(l.signals||[]).join('; ')})));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Leads');
+  XLSX.writeFile(wb,'distressed_leads.xlsx');
+}
+
+
+
+
+function exportPDF(){
+  var lines=['DISTRESSEDLEADS.AI LEADS EXPORT','='.repeat(50)];
+  filteredLeads.forEach(function(l){
+    lines.push(l.address+' | '+l.ownerName+' | Score:'+l.distressScore+' | '+l.estValue+' | '+(l.signals||[]).join(', '));
+  });
+  var blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads.txt';a.click();
+}
+
 </script>
 </body>
 </html>
