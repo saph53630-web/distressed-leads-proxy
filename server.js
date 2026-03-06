@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_, res) => res.json({status:'ok',version:'5.9'}));
-app.get('/health', (_, res) => res.json({status:'ok',version:'5.9'}));
+app.get('/', (_, res) => res.json({status:'ok',version:'6.1'}));
+app.get('/health', (_, res) => res.json({status:'ok',version:'6.1'}));
 
 app.post('/api/claude', async (req, res) => {
   try {
@@ -100,30 +100,18 @@ app.post('/api/propertyradar/search', async (req, res) => {
     // Normalize street — uppercase, remove periods
     const streetNorm = street.toUpperCase().replace(/\./g,'').trim();
 
-    // Strategy 1: street + city + state (most specific)
-    // Strategy 2: street + state only
-    // Strategy 3: zip + street (if zip present)
+    // PR Address criteria does NOT combine well with City/State
+    // addr_only returns correct totalResultCount=1
+    // addr+city or addr+state returns 0 (city name mismatch in PR db)
+    // So: search by address only, then optionally filter by zip if available
     const strategies = [];
-    if(street && city && state) {
-      strategies.push([
-        {name:'Address', value:[streetNorm]},
-        {name:'City',    value:[city]},
-        {name:'State',   value:[state]}
-      ]);
-    }
     if(zip && zip.length===5) {
       strategies.push([
         {name:'Address',  value:[streetNorm]},
         {name:'ZipFive',  value:[zip]}
       ]);
     }
-    if(street && state) {
-      strategies.push([
-        {name:'Address', value:[streetNorm]},
-        {name:'State',   value:[state]}
-      ]);
-    }
-    // Fallback: just street
+    // Address only — most reliable
     strategies.push([{name:'Address', value:[streetNorm]}]);
 
     let results = [];
@@ -213,6 +201,32 @@ app.get('/api/propertyradar/testaddr', async (req, res) => {
     }catch(e){results[label]={error:e.message};}
   }
   res.json({addr,city,state,results});
+});
+
+
+// Raw address lookup - shows exact PR response fields
+app.get('/api/propertyradar/rawlookup', async (req, res) => {
+  const token = req.headers['x-pr-token']||req.query.token;
+  const addr = req.query.addr||'282 HERLONG AVE';
+  if(!token) return res.status(401).json({error:'Provide token'});
+  const fetch = (await import('node-fetch')).default;
+  try {
+    // Try Purchase=1 with just a few fields first
+    const params = new URLSearchParams();
+    params.set('Purchase', 1);
+    params.set('Limit', 3);
+    ['RadarID','Address','City','State','ZipFive','Owner','OwnerFirstName','OwnerLastName',
+     'OwnerPhone','OwnerEmail','AVM','Beds','Baths','SqFt','YearBuilt','PType',
+     'EquityPercent','inForeclosure','isSiteVacant'].forEach(f => params.append('Fields', f));
+    const r = await fetch(`${PR_BASE}?${params}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body: JSON.stringify({Criteria:[{name:'Address',value:[addr.toUpperCase()]}]}),
+      signal: AbortSignal.timeout(15000)
+    });
+    const text = await r.text();
+    res.json({status:r.status, addr, raw:JSON.parse(text)});
+  } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.use((req,res) => res.status(404).json({error:`Not found: ${req.method} ${req.path}`}));
