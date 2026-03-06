@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_, res) => res.json({status:'ok',version:'5.2'}));
-app.get('/health', (_, res) => res.json({status:'ok',version:'5.2'}));
+app.get('/', (_, res) => res.json({status:'ok',version:'5.3'}));
+app.get('/health', (_, res) => res.json({status:'ok',version:'5.3'}));
 
 app.post('/api/claude', async (req, res) => {
   try {
@@ -21,7 +21,10 @@ app.post('/api/claude', async (req, res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-const PR_FIELDS = [
+// Correct PR API field names discovered from debug:
+// "Fields" -> "Purchase"
+// "Count"  -> "Limit"
+const PR_PURCHASE = [
   "RadarID","Address","City","State","ZipFive","County","APN","PropertyURL","PhotoURL1",
   "Owner","OwnerFirstName","OwnerLastName","OwnerSpouseFirstName",
   "OwnerAddress","OwnerCity","OwnerState","OwnerZipFive",
@@ -36,87 +39,60 @@ const PR_FIELDS = [
   "Latitude","Longitude"
 ];
 
-// The correct PR API URL — try both known variants
-const PR_URLS = [
-  'https://api.propertyradar.com/v1/properties',
-  'https://app.propertyradar.com/api/v1/properties'
-];
+const PR_URL = 'https://api.propertyradar.com/v1/properties';
 
-async function callPR(token, body) {
+async function callPR(token, criteria, limit=25, purchase=PR_PURCHASE) {
   const fetch = (await import('node-fetch')).default;
-
-  // Try primary URL
-  const url = PR_URLS[0];
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
-
   try {
-    console.log(`[PR] POST ${url}`);
-    console.log(`[PR] Body: ${JSON.stringify(body).substring(0,300)}`);
-
-    const r = await fetch(url, {
+    const body = { Criteria: criteria, Purchase: purchase, Limit: limit };
+    console.log('[PR] POST', PR_URL);
+    console.log('[PR] Body:', JSON.stringify(body).substring(0,400));
+    const r = await fetch(PR_URL, {
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${token}`,
-        'Accept':'application/json'
-      },
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'Accept':'application/json'},
       body: JSON.stringify(body),
       signal: controller.signal
     });
     clearTimeout(timer);
-
     const text = await r.text();
-    console.log(`[PR] Status: ${r.status}`);
-    console.log(`[PR] Headers: ${JSON.stringify(Object.fromEntries(r.headers))}`);
-    console.log(`[PR] Body preview: ${text.substring(0,600)}`);
-
-    // If we got HTML back, the URL is wrong or server is down
-    if(text.trimStart().startsWith('<')) {
-      throw new Error(`PR API returned HTML (status ${r.status}) — check URL or token. Preview: ${text.substring(0,100)}`);
-    }
-
-    if(!r.ok) {
-      throw new Error(`PR API ${r.status}: ${text.substring(0,300)}`);
-    }
-
+    console.log(`[PR] ${r.status} — ${text.substring(0,600)}`);
+    if(text.trimStart().startsWith('<')) throw new Error(`PR returned HTML (${r.status}) — token invalid or expired`);
+    if(!r.ok) throw new Error(`PR API ${r.status}: ${text.substring(0,300)}`);
     let parsed;
-    try { parsed = JSON.parse(text); }
-    catch(e) { throw new Error(`PR non-JSON response (${r.status}): ${text.substring(0,150)}`); }
-
+    try { parsed = JSON.parse(text); } catch(e) { throw new Error(`PR non-JSON: ${text.substring(0,150)}`); }
     const results = parsed.results||parsed.data||parsed.Records||parsed.properties||parsed.items||[];
-    console.log(`[PR] ${results.length} results. Keys: ${Object.keys(parsed).join(',')}`);
-    if(results.length) console.log(`[PR] First record keys: ${Object.keys(results[0]).join(',')}`);
+    console.log(`[PR] ${results.length} results — top keys: ${Object.keys(parsed).join(',')}`);
+    if(results.length) console.log(`[PR] record keys: ${Object.keys(results[0]).join(',')}`);
     return { results, meta: parsed };
-
   } catch(e) {
     clearTimeout(timer);
-    if(e.name==='AbortError') throw new Error('PropertyRadar timed out after 25s');
+    if(e.name==='AbortError') throw new Error('PropertyRadar timed out — try again');
     throw e;
   }
 }
 
-// Debug endpoint — shows exactly what PR returns
+// Debug — shows raw PR response so we can see exact structure
 app.get('/api/propertyradar/debug', async (req, res) => {
   const token = req.headers['x-pr-token']||req.query.token;
   if(!token) return res.status(401).json({error:'Provide token'});
   const fetch = (await import('node-fetch')).default;
-  const results = {};
-  for(const url of PR_URLS) {
-    try {
-      const r = await fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'Accept':'application/json'},
-        body: JSON.stringify({Criteria:[{name:'SiteState',value:['CA']}],Fields:['RadarID','Address','City'],Count:1}),
-        signal: AbortSignal.timeout(10000)
-      });
-      const text = await r.text();
-      results[url] = {status:r.status, isHTML:text.trimStart().startsWith('<'), preview:text.substring(0,200)};
-    } catch(e) {
-      results[url] = {error:e.message};
-    }
-  }
-  res.json({token_length:token.length, token_prefix:token.substring(0,8)+'...', url_results:results});
+  try {
+    const body = {
+      Criteria: [{name:'SiteState', value:['CA']}],
+      Purchase: ['RadarID','Address','City','State','Owner','AVM','inForeclosure','EquityPercent'],
+      Limit: 2
+    };
+    const r = await fetch(PR_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000)
+    });
+    const text = await r.text();
+    res.json({status:r.status, preview:text.substring(0,800), token_prefix:token.substring(0,8)+'...'});
+  } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 // Test connection
@@ -124,15 +100,13 @@ app.get('/api/propertyradar/test', async (req, res) => {
   const token = req.headers['x-pr-token']||req.query.token;
   if(!token) return res.status(401).json({error:'Provide token'});
   try {
-    const {results, meta} = await callPR(token, {
-      Criteria:[{name:'SiteState',value:['CA']}],
-      Fields:['RadarID','Address','City','State','Owner','AVM','inForeclosure','EquityPercent'],
-      Count:2
-    });
-    res.json({status:'connected', count:results.length, sample:results[0]||null, metaKeys:Object.keys(meta)});
-  } catch(e) {
-    res.status(500).json({status:'error', error:e.message});
-  }
+    const {results} = await callPR(token,
+      [{name:'SiteState',value:['CA']}],
+      2,
+      ['RadarID','Address','City','State','Owner','AVM','inForeclosure','EquityPercent']
+    );
+    res.json({status:'connected', count:results.length, sample:results[0]||null});
+  } catch(e) { res.status(500).json({status:'error', error:e.message}); }
 });
 
 // Search by address
@@ -141,22 +115,20 @@ app.post('/api/propertyradar/search', async (req, res) => {
   if(!token) return res.status(401).json({error:'Missing x-pr-token'});
   try {
     const street = (req.body.address||'').split(',')[0].trim();
-    const {results} = await callPR(token, {
-      Criteria:[{name:'SiteAddress',value:[street]}],
-      Fields:PR_FIELDS, Count:5
-    });
+    console.log(`[search] "${street}"`);
+    const {results} = await callPR(token, [{name:'SiteAddress',value:[street]}], 5);
     res.json({results, count:results.length});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// Distressed leads
+// Distressed leads — 3 parallel queries
 app.post('/api/propertyradar/leads', async (req, res) => {
   const token = req.headers['x-pr-token'];
   if(!token) return res.status(401).json({error:'Missing x-pr-token'});
   try {
     const {city, state, signals=[], count=25} = req.body;
     if(!city) return res.status(400).json({error:'Missing city'});
-    console.log(`[leads] ${city}, ${state} count:${count}`);
+    console.log(`[leads] ${city}, ${state} | count:${count}`);
 
     const base = [];
     if(city)  base.push({name:'SiteCity',  value:[city]});
@@ -164,27 +136,33 @@ app.post('/api/propertyradar/leads', async (req, res) => {
     const perQ = Math.ceil(count/3);
 
     const queries = [
-      {Criteria:[...base,{name:'inForeclosure',value:['Yes']}], Fields:PR_FIELDS, Count:perQ, Sort:[{field:'DefaultAmount',direction:'desc'}]},
-      {Criteria:[...base,{name:'isSameMailingOrExempt',value:['No']},{name:'EquityPercent',value:[[40,null]]}], Fields:PR_FIELDS, Count:perQ, Sort:[{field:'EquityPercent',direction:'desc'}]},
-      {Criteria:[...base,{name:'isSiteVacant',value:['Yes']}], Fields:PR_FIELDS, Count:perQ, Sort:[{field:'AVM',direction:'desc'}]}
+      // Pre-foreclosure / default
+      [...base, {name:'inForeclosure', value:['Yes']}],
+      // Absentee owner with equity
+      [...base, {name:'isSameMailingOrExempt', value:['No']}, {name:'EquityPercent', value:[[40,null]]}],
+      // Vacant property
+      [...base, {name:'isSiteVacant', value:['Yes']}]
     ];
 
     const allRes = await Promise.all(
-      queries.map(q => callPR(token,q).catch(e => { console.warn('sub-query failed:',e.message); return {results:[]}; }))
+      queries.map(criteria =>
+        callPR(token, criteria, perQ)
+          .catch(e => { console.warn('sub-query failed:', e.message); return {results:[]}; })
+      )
     );
 
     const seen=new Set(), merged=[];
     for(const {results} of allRes)
-      for(const r of results){
-        const id=r.RadarID||(r.Address+r.City);
-        if(!seen.has(id)){seen.add(id);merged.push(r);}
+      for(const r of results) {
+        const id = r.RadarID||(r.Address+r.City);
+        if(!seen.has(id)){ seen.add(id); merged.push(r); }
       }
 
+    console.log(`[leads] ${merged.length} unique results`);
     res.json({results:merged.slice(0,count), count:merged.length});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.use((req,res) => res.status(404).json({error:`Not found: ${req.method} ${req.path}`}));
 app.use((err,req,res,next) => { console.error(err); res.status(500).json({error:err.message}); });
-
-app.listen(PORT, () => console.log(`DistressedLeads v5.2 on port ${PORT}`));
+app.listen(PORT, () => console.log(`DistressedLeads v5.3 on port ${PORT}`));
