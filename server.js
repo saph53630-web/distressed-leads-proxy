@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_, res) => res.json({status:'ok',version:'5.8'}));
-app.get('/health', (_, res) => res.json({status:'ok',version:'5.8'}));
+app.get('/', (_, res) => res.json({status:'ok',version:'5.9'}));
+app.get('/health', (_, res) => res.json({status:'ok',version:'5.9'}));
 
 app.post('/api/claude', async (req, res) => {
   try {
@@ -80,7 +80,7 @@ app.get('/api/propertyradar/test', async (req, res) => {
   } catch(e) { res.status(500).json({status:'error', error:e.message}); }
 });
 
-// Search by address — parse full address into criteria components
+// Search by address — multi-strategy to maximize match rate
 app.post('/api/propertyradar/search', async (req, res) => {
   const token = req.headers['x-pr-token'];
   if(!token) return res.status(401).json({error:'Missing x-pr-token'});
@@ -89,23 +89,59 @@ app.post('/api/propertyradar/search', async (req, res) => {
     if(!full) return res.status(400).json({error:'Missing address'});
     console.log(`[search] "${full}"`);
 
-    // Parse "123 Main St, Atlanta, GA 30301" into parts
+    // Parse "123 Main St, Atlanta, GA 30301"
     const parts = full.split(',').map(p => p.trim());
     const street = parts[0] || '';
-    const cityRaw = parts[1] || '';
+    const city   = parts[1] || '';
     const stateZip = (parts[2] || '').trim();
-    const state = stateZip.split(' ')[0] || '';
-    const zip = stateZip.split(' ')[1] || '';
+    const state  = stateZip.split(' ')[0] || '';
+    const zip    = stateZip.split(' ')[1] || '';
 
-    // Build criteria — always use street, add city/state/zip if available
-    const criteria = [{name:'Address', value:[street]}];
-    if(cityRaw) criteria.push({name:'City', value:[cityRaw]});
-    if(state) criteria.push({name:'State', value:[state]});
-    if(zip && zip.length === 5) criteria.push({name:'ZipFive', value:[zip]});
+    // Normalize street — uppercase, remove periods
+    const streetNorm = street.toUpperCase().replace(/\./g,'').trim();
 
-    console.log('[search] criteria:', JSON.stringify(criteria));
-    const {results} = await callPR(token, criteria, 5);
-    res.json({results, count:results.length});
+    // Strategy 1: street + city + state (most specific)
+    // Strategy 2: street + state only
+    // Strategy 3: zip + street (if zip present)
+    const strategies = [];
+    if(street && city && state) {
+      strategies.push([
+        {name:'Address', value:[streetNorm]},
+        {name:'City',    value:[city]},
+        {name:'State',   value:[state]}
+      ]);
+    }
+    if(zip && zip.length===5) {
+      strategies.push([
+        {name:'Address',  value:[streetNorm]},
+        {name:'ZipFive',  value:[zip]}
+      ]);
+    }
+    if(street && state) {
+      strategies.push([
+        {name:'Address', value:[streetNorm]},
+        {name:'State',   value:[state]}
+      ]);
+    }
+    // Fallback: just street
+    strategies.push([{name:'Address', value:[streetNorm]}]);
+
+    let results = [];
+    let usedStrategy = '';
+    for(const criteria of strategies) {
+      console.log('[search] trying:', JSON.stringify(criteria));
+      try {
+        const out = await callPR(token, criteria, 5);
+        if(out.results.length > 0) {
+          results = out.results;
+          usedStrategy = JSON.stringify(criteria);
+          break;
+        }
+      } catch(e) { console.warn('[search] strategy failed:', e.message); }
+    }
+
+    console.log(`[search] found ${results.length} results via: ${usedStrategy}`);
+    res.json({results, count:results.length, strategy:usedStrategy});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
@@ -146,6 +182,37 @@ app.post('/api/propertyradar/leads', async (req, res) => {
     console.log(`[leads] ${merged.length} unique results`);
     res.json({results:merged.slice(0,count), count:merged.length});
   } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+
+// Test a specific address - shows raw PR response
+app.get('/api/propertyradar/testaddr', async (req, res) => {
+  const token = req.headers['x-pr-token']||req.query.token;
+  const addr = req.query.addr||'282 HERLONG AVE';
+  const city = req.query.city||'Atlanta';
+  const state = req.query.state||'GA';
+  if(!token) return res.status(401).json({error:'Provide token'});
+  const fetch = (await import('node-fetch')).default;
+  const results = {};
+  const tests = [
+    {label:'addr+city+state', body:{Criteria:[{name:'Address',value:[addr]},{name:'City',value:[city]},{name:'State',value:[state]}]}},
+    {label:'addr+state',      body:{Criteria:[{name:'Address',value:[addr]},{name:'State',value:[state]}]}},
+    {label:'addr_only',       body:{Criteria:[{name:'Address',value:[addr]}]}},
+    {label:'city+state_count',body:{Criteria:[{name:'City',value:[city]},{name:'State',value:[state]}]}}
+  ];
+  for(const {label,body} of tests){
+    try{
+      const r = await fetch(`${PR_BASE}?Purchase=0&Limit=3`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+        body:JSON.stringify(body),
+        signal:AbortSignal.timeout(8000)
+      });
+      const text = await r.text();
+      results[label]={status:r.status,preview:text.substring(0,200)};
+    }catch(e){results[label]={error:e.message};}
+  }
+  res.json({addr,city,state,results});
 });
 
 app.use((req,res) => res.status(404).json({error:`Not found: ${req.method} ${req.path}`}));
