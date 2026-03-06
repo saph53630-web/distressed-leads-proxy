@@ -6,8 +6,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.use((req,res,next) => { res.setHeader('Content-Type','application/json'); next(); });
-app.get('/', (_,res) => res.json({status:'ok',version:'7.0'}));
-app.get('/health', (_,res) => res.json({status:'ok',version:'7.0'}));
+app.get('/', (_,res) => res.json({status:'ok',version:'7.1'}));
+app.get('/health', (_,res) => res.json({status:'ok',version:'7.1'}));
 
 app.post('/api/claude', async (req,res) => {
   try {
@@ -122,19 +122,25 @@ app.get('/api/propertyradar/test', async (req,res) => {
 // ── RAW DEBUG ─────────────────────────────────────────────────
 app.get('/api/propertyradar/debug', async (req,res) => {
   const token = req.headers['x-pr-token']||req.query.token;
-  const addr  = (req.query.addr||'282 HERLONG AVE').toUpperCase();
+  const city  = req.query.city||'Atlanta';
+  const state = req.query.state||'GA';
   if(!token) return res.status(401).json({error:'Provide token'});
   const fetch = (await import('node-fetch')).default;
-  try {
-    const r = await fetch(`${PR_BASE}?Purchase=1&Limit=2`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body: JSON.stringify({Criteria:[{name:'Address',value:[addr]}]}),
-      signal: AbortSignal.timeout(15000)
-    });
-    const text = await r.text();
-    res.json({status:r.status, addr, raw:text.substring(0,2000)});
-  } catch(e){ res.status(500).json({error:e.message}); }
+  const results = {};
+  const tests = [
+    {label:'city+state P=0', url:`${PR_BASE}?Purchase=0&Limit=2`, body:{Criteria:[{name:'City',value:[city]},{name:'State',value:[state]}]}},
+    {label:'city+state P=1', url:`${PR_BASE}?Purchase=1&Limit=2`, body:{Criteria:[{name:'City',value:[city]},{name:'State',value:[state]}]}},
+    {label:'state+foreclosure P=1', url:`${PR_BASE}?Purchase=1&Limit=2`, body:{Criteria:[{name:'State',value:[state]},{name:'inForeclosure',value:['Yes']}]}},
+    {label:'state only P=1', url:`${PR_BASE}?Purchase=1&Limit=2`, body:{Criteria:[{name:'State',value:[state]}]}}
+  ];
+  for(const {label,url,body} of tests){
+    try{
+      const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+      const text = await r.text();
+      results[label]={status:r.status, preview:text.substring(0,300)};
+    }catch(e){results[label]={error:e.message};}
+  }
+  res.json({city,state,results});
 });
 
 app.use((req,res) => res.status(404).json({error:`Not found: ${req.method} ${req.path}`}));
